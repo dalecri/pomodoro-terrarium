@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Pomodoro Terrarium</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #3b382c;
+    --ink-dim: rgba(59, 56, 44, 0.72);
+    --ink-faint: rgba(59, 56, 44, 0.45);
+    --panel: rgba(255, 252, 243, 0.66);
+    --panel-solid: #fbf8ee;
+    --line: rgba(90, 80, 50, 0.13);
+    --chip: rgba(90, 80, 50, 0.07);
+    --tomato: #e8684a;
+    --tomato-ink: #fff8f2;
+    --leaf: #5e9a4e;
+    --sun: #f0b43c;
+    --shadow: 0 18px 50px -18px rgba(70, 60, 30, 0.35);
+    --font: 'Nunito', system-ui, sans-serif;
+    --display: 'Fredoka', 'Nunito', system-ui, sans-serif;
+  }
+  body[data-mood="dusk"] {
+    --ink: #40283a;
+    --ink-dim: rgba(64, 40, 58, 0.74);
+    --ink-faint: rgba(64, 40, 58, 0.48);
+    --panel: rgba(255, 240, 236, 0.58);
+    --panel-solid: #fbeee9;
+    --line: rgba(110, 50, 70, 0.14);
+    --chip: rgba(110, 50, 70, 0.08);
+    --tomato: #d9586e;
+    --shadow: 0 18px 50px -18px rgba(90, 30, 60, 0.4);
+  }
+  body[data-mood="night"] {
+    --ink: #eeeaff;
+    --ink-dim: rgba(238, 234, 255, 0.72);
+    --ink-faint: rgba(238, 234, 255, 0.42);
+    --panel: rgba(26, 30, 66, 0.6);
+    --panel-solid: #1f2450;
+    --line: rgba(220, 220, 255, 0.13);
+    --chip: rgba(220, 220, 255, 0.08);
+    --tomato: #f2b35a;
+    --tomato-ink: #2a2040;
+    --shadow: 0 18px 50px -18px rgba(0, 0, 20, 0.7);
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: #e9ecdb;
+    color: var(--ink);
+    font-family: var(--font);
+    overflow: hidden;
+    transition: color 1.2s ease;
+  }
+  button { font-family: inherit; color: inherit; }
+  #app { position: fixed; inset: 0; }
+
+  /* sky layers crossfade between moods */
+  .sky { position: absolute; inset: 0; opacity: 0; transition: opacity 2.4s ease; }
+  .sky.day   { background: radial-gradient(ellipse at 50% 92%, #f7e6c4 0%, #e8efd8 38%, #d6e4d0 75%, #c6d8cc 100%); }
+  .sky.dusk  { background: radial-gradient(ellipse at 50% 92%, #ffd2a0 0%, #f4b0a4 32%, #c99ab8 64%, #8f7cae 100%); }
+  .sky.night { background: radial-gradient(ellipse at 50% 92%, #3a3468 0%, #232a58 34%, #151a3c 70%, #0d1128 100%); }
+  body[data-mood="day"] .sky.day,
+  body[data-mood="dusk"] .sky.dusk,
+  body[data-mood="night"] .sky.night { opacity: 1; }
+
+  #scene { position: absolute; inset: 0; }
+  #scene canvas { display: block; width: 100%; height: 100%; cursor: grab; touch-action: pan-y; }
+  .grain {
+    position: absolute; inset: 0; pointer-events: none; opacity: 0.05; mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.8'/></svg>");
+  }
+
+  /* ---------- shared panel look ---------- */
+  .panel {
+    position: absolute; z-index: 5;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(18px) saturate(130%);
+    -webkit-backdrop-filter: blur(18px) saturate(130%);
+    transition: background 1.2s ease, border-color 1.2s ease;
+  }
+  .eyebrow {
+    font-size: 11px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  .icon-btn {
+    border: 0; background: var(--chip); border-radius: 10px; cursor: pointer;
+    width: 32px; height: 32px; display: inline-grid; place-items: center; color: var(--ink-dim);
+    transition: background .15s ease, color .15s ease;
+  }
+  .icon-btn:hover { color: var(--ink); background: var(--line); }
+  .icon-btn svg { width: 16px; height: 16px; }
+
+  /* ---------- masthead ---------- */
+  .masthead {
+    position: absolute; top: 22px; left: 50%; transform: translateX(-50%); z-index: 6;
+    display: flex; align-items: center; gap: 10px; white-space: nowrap;
+    font-family: var(--display); font-weight: 500; font-size: 17px; letter-spacing: 0.01em;
+  }
+  .masthead .sprout { width: 22px; height: 22px; }
+  .masthead .day-note { font-family: var(--font); font-size: 12px; font-weight: 700; color: var(--ink-faint); margin-left: 4px; }
+  .mobile-tabs { display: none; }
+
+  /* ---------- tasks ---------- */
+  .tasks {
+    top: 22px; left: 22px; width: 300px;
+    max-height: calc(100vh - 44px);
+    display: flex; flex-direction: column; padding: 18px 16px 14px;
+  }
+  .tasks .head { display: flex; justify-content: space-between; align-items: baseline; padding: 0 4px; }
+  .tasks h2, .garden h2 {
+    margin: 4px 0 12px; font-family: var(--display); font-weight: 500; font-size: 22px; letter-spacing: -0.01em;
+  }
+  .tasks .count { font-size: 12px; font-weight: 700; color: var(--ink-faint); }
+  .add-row { display: flex; gap: 8px; margin-bottom: 10px; }
+  .add-row input {
+    flex: 1; min-width: 0; border: 1px solid var(--line); background: var(--chip);
+    border-radius: 12px; padding: 10px 12px; font: inherit; font-size: 14px; font-weight: 600; color: var(--ink);
+    outline: none; transition: border-color .15s ease, background .15s ease;
+  }
+  .add-row input::placeholder { color: var(--ink-faint); }
+  .add-row input:focus { border-color: var(--leaf); background: transparent; }
+  .add-row button {
+    border: 0; border-radius: 12px; width: 40px; cursor: pointer; font-size: 20px; line-height: 1;
+    background: var(--leaf); color: #fff; font-weight: 700;
+  }
+  .task-list { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; min-height: 40px; }
+  .task {
+    display: grid; grid-template-columns: 26px 1fr auto; align-items: center; gap: 8px;
+    padding: 8px 8px; border-radius: 12px; cursor: pointer;
+    border: 1px solid transparent;
+    transition: background .15s ease, border-color .15s ease;
+  }
+  .task:hover { background: var(--chip); }
+  .task.active { background: var(--chip); border-color: var(--line); }
+  .task.active .t-text::after {
+    content: 'tending'; margin-left: 8px; font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--leaf); vertical-align: 1px;
+  }
+  .check {
+    width: 22px; height: 22px; border-radius: 8px; border: 2px solid var(--ink-faint);
+    display: grid; place-items: center; cursor: pointer; background: transparent; padding: 0;
+    transition: all .2s ease;
+  }
+  .check svg { width: 13px; height: 13px; opacity: 0; transform: scale(.4); transition: all .2s cubic-bezier(.3,1.6,.5,1); }
+  .task.done .check { background: var(--leaf); border-color: var(--leaf); }
+  .task.done .check svg { opacity: 1; transform: scale(1); }
+  .t-text { font-size: 14px; font-weight: 600; line-height: 1.3; word-break: break-word; }
+  .task.done .t-text { color: var(--ink-faint); text-decoration: line-through; text-decoration-thickness: 1.5px; }
+  .t-pomos { display: flex; gap: 3px; align-items: center; }
+  .t-pomos i { width: 7px; height: 7px; border-radius: 50%; background: var(--tomato); opacity: .85; }
+  .t-del { opacity: 0; border: 0; background: none; cursor: pointer; color: var(--ink-faint); font-size: 16px; padding: 0 2px; }
+  .task:hover .t-del { opacity: 1; }
+  .t-del:hover { color: var(--tomato); }
+  .t-right { display: flex; align-items: center; gap: 6px; }
+  .empty-tasks { padding: 18px 8px; text-align: center; font-size: 13px; color: var(--ink-faint); line-height: 1.5; }
+  .tasks .foot { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; padding: 0 4px; font-size: 12px; color: var(--ink-faint); }
+  .link-btn { border: 0; background: none; cursor: pointer; font-size: 12px; font-weight: 700; color: var(--ink-faint); padding: 4px 0; }
+  .link-btn:hover { color: var(--ink); }
+
+  /* ---------- garden panel ---------- */
+  .garden {
+    top: 22px; right: 22px; width: 288px;
+    max-height: calc(100vh - 44px); overflow-y: auto;
+    padding: 18px 18px 14px;
+  }
+  .garden .head { display: flex; justify-content: space-between; align-items: center; }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+  .stat { background: var(--chip); border-radius: 14px; padding: 10px 12px; }
+  .stat .v { font-family: var(--display); font-size: 24px; font-weight: 500; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .stat .v small { font-size: 13px; color: var(--ink-faint); margin-left: 2px; }
+  .stat .l { font-size: 11px; font-weight: 700; color: var(--ink-faint); margin-top: 2px; }
+  .section { margin-top: 14px; }
+  .section .eyebrow { margin-bottom: 8px; display: flex; justify-content: space-between; }
+  .journal { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+  .critter {
+    aspect-ratio: 1; border-radius: 12px; background: var(--chip); display: grid; place-items: center;
+    font-size: 21px; position: relative; cursor: default;
+    transition: transform .2s ease;
+  }
+  .critter.locked { filter: grayscale(1) brightness(0.4); opacity: .4; }
+  .critter.fresh { animation: wiggle 0.8s ease 3; }
+  @keyframes wiggle { 0%,100% { transform: rotate(0) } 25% { transform: rotate(-12deg) scale(1.1) } 75% { transform: rotate(12deg) scale(1.1) } }
+  .critter:hover { transform: translateY(-2px); }
+  .journal-note { font-size: 12px; color: var(--ink-dim); margin-top: 8px; min-height: 16px; line-height: 1.4; }
+  .shelf { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+  .jar-thumb { flex: 0 0 auto; width: 62px; text-align: center; }
+  .jar-thumb img { width: 62px; height: 62px; object-fit: cover; border-radius: 12px; border: 1px solid var(--line); display: block; }
+  .jar-thumb span { font-size: 10px; font-weight: 700; color: var(--ink-faint); }
+  .shelf-empty { font-size: 12px; color: var(--ink-faint); line-height: 1.45; }
+  .jar-meter { height: 6px; border-radius: 4px; background: var(--chip); overflow: hidden; margin-top: 6px; }
+  .jar-meter i { display: block; height: 100%; background: var(--leaf); border-radius: 4px; transition: width .6s ease; }
+  .btn {
+    border: 1px solid var(--line); background: var(--chip); border-radius: 12px;
+    padding: 9px 14px; font-size: 13px; font-weight: 800; cursor: pointer; color: var(--ink);
+    transition: background .15s ease, transform .1s ease;
+  }
+  .btn:hover { background: var(--line); }
+  .btn:active { transform: scale(.97); }
+  .btn.full { width: 100%; margin-top: 10px; }
+  .settings { display: none; margin-top: 12px; }
+  .settings.open { display: block; }
+  .set-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; font-size: 13px; font-weight: 700; }
+  .stepper { display: flex; align-items: center; gap: 4px; }
+  .stepper button { width: 26px; height: 26px; border-radius: 8px; border: 0; background: var(--chip); cursor: pointer; font-weight: 800; }
+  .stepper span { min-width: 44px; text-align: center; font-variant-numeric: tabular-nums; }
+  .toggle { width: 38px; height: 22px; border-radius: 12px; background: var(--line); border: 0; position: relative; cursor: pointer; transition: background .2s ease; }
+  .toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform .2s ease; box-shadow: 0 1px 3px rgba(0,0,0,.2); }
+  .toggle.on { background: var(--leaf); }
+  .toggle.on::after { transform: translateX(16px); }
+
+  /* ---------- timer ---------- */
+  .timer {
+    left: 50%; bottom: 22px; transform: translateX(-50%);
+    width: min(440px, calc(100vw - 32px));
+    padding: 14px 20px 16px; text-align: center;
+  }
+  .modes { display: inline-flex; gap: 4px; background: var(--chip); padding: 4px; border-radius: 14px; }
+  .modes button {
+    border: 0; background: transparent; border-radius: 10px; padding: 6px 12px; cursor: pointer;
+    font-size: 12.5px; font-weight: 800; color: var(--ink-dim);
+  }
+  .modes button.on { background: var(--panel-solid); color: var(--ink); box-shadow: 0 2px 8px -2px rgba(0,0,0,.15); }
+  .time {
+    font-family: var(--display); font-weight: 500; font-size: 68px; line-height: 1; letter-spacing: -0.02em;
+    margin: 10px 0 4px; font-variant-numeric: tabular-nums;
+  }
+  .time .colon { opacity: .55; margin: 0 1px; }
+  .timer.running .time .colon { animation: breathe 2s ease-in-out infinite; }
+  @keyframes breathe { 50% { opacity: .2; } }
+  .caption { font-size: 13.5px; font-weight: 600; color: var(--ink-dim); min-height: 20px; margin-bottom: 12px; padding: 0 8px; }
+  .caption b { color: var(--ink); font-weight: 800; }
+  .progress { height: 6px; border-radius: 4px; background: var(--chip); overflow: hidden; margin: 0 6px 14px; }
+  .progress i { display: block; height: 100%; width: 0%; border-radius: 4px; background: linear-gradient(90deg, var(--leaf), var(--sun)); transition: width .3s linear; }
+  body[data-mood="dusk"] .progress i { background: linear-gradient(90deg, #8fb0ff, #d9a0e0); }
+  body[data-mood="night"] .progress i { background: linear-gradient(90deg, #7f8cff, #f2d27a); }
+  .controls { display: flex; justify-content: center; align-items: center; gap: 10px; }
+  .main-btn {
+    border: 0; border-radius: 16px; padding: 13px 0; width: 170px; cursor: pointer;
+    background: var(--tomato); color: var(--tomato-ink);
+    font-family: var(--display); font-size: 18px; font-weight: 500; letter-spacing: .01em;
+    box-shadow: 0 8px 22px -8px var(--tomato), inset 0 -3px 0 rgba(0,0,0,.12);
+    transition: transform .1s ease, filter .15s ease, background 1.2s ease;
+  }
+  .main-btn:hover { filter: brightness(1.05); }
+  .main-btn:active { transform: translateY(2px); box-shadow: 0 4px 12px -6px var(--tomato), inset 0 -1px 0 rgba(0,0,0,.12); }
+  .side-btn { width: 44px; height: 44px; border-radius: 14px; }
+  .side-btn svg { width: 18px; height: 18px; }
+  .side-btn[hidden] { display: none; }
+  .seeds { display: flex; justify-content: center; gap: 7px; margin-top: 12px; }
+  .seeds i {
+    width: 10px; height: 13px; border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+    background: var(--chip); border: 1.5px solid var(--line); transition: all .4s ease;
+  }
+  .seeds i.full { background: var(--leaf); border-color: var(--leaf); }
+  .seeds i.next { border-color: var(--leaf); }
+
+  /* ---------- coins + shop ---------- */
+  .head-right { display: flex; align-items: center; gap: 8px; }
+  .coin { width: 18px; height: 18px; flex: none; }
+  .coin-pill {
+    position: relative; display: inline-flex; align-items: center; gap: 6px; height: 32px;
+    border: 0; border-radius: 11px; padding: 0 10px 0 7px; cursor: pointer;
+    background: linear-gradient(#ffeaa6, #f6c94c); color: #6a4a10;
+    font-family: var(--font); font-size: 13.5px; font-weight: 800; font-variant-numeric: tabular-nums;
+    box-shadow: inset 0 -2px 0 rgba(160, 100, 0, .25), 0 4px 12px -6px rgba(200, 140, 0, .6);
+    transition: transform .12s ease, filter .15s ease;
+  }
+  .coin-pill:hover { filter: brightness(1.04); transform: translateY(-1px); }
+  .coin-pill.static { cursor: default; transform: none; }
+  .coin-pill .shop-label { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; opacity: .75; padding-left: 6px; border-left: 1px solid rgba(106, 74, 16, .2); }
+  .coin-pill.bump { animation: bump .5s cubic-bezier(.3, 1.8, .5, 1); }
+  @keyframes bump { 40% { transform: scale(1.15); } }
+  .coin-float {
+    position: absolute; left: 50%; top: -6px; transform: translateX(-50%);
+    font-weight: 800; font-size: 14px; color: #c98a00; text-shadow: 0 1px 0 #fff8e0; pointer-events: none;
+    animation: coinFloat 1.3s ease-out forwards;
+  }
+  @keyframes coinFloat { from { opacity: 0; transform: translate(-50%, 6px); } 20% { opacity: 1; } to { opacity: 0; transform: translate(-50%, -26px); } }
+
+  .shop-wrap { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; padding: 16px; }
+  .shop-wrap[hidden] { display: none; }
+  .shop-backdrop { position: absolute; inset: 0; background: rgba(40, 35, 20, .28); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); animation: fadeIn .25s ease; }
+  body[data-mood="night"] .shop-backdrop { background: rgba(5, 8, 25, .5); }
+  .shop {
+    position: relative; width: min(780px, 100%); max-height: min(740px, calc(100vh - 32px));
+    display: flex; flex-direction: column; padding: 20px 20px 16px;
+    background: var(--panel-solid); animation: shopIn .35s cubic-bezier(.2, 1.3, .4, 1);
+  }
+  @keyframes shopIn { from { opacity: 0; transform: translateY(14px) scale(.97); } }
+  @keyframes fadeIn { from { opacity: 0; } }
+  .shop-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+  .shop-head h2 { margin: 2px 0 2px; font-family: var(--display); font-weight: 500; font-size: 24px; }
+  .shop-sub { font-size: 13px; color: var(--ink-dim); }
+  .shop-tabs { margin-top: 14px; align-self: flex-start; }
+  .shop-note { font-size: 12.5px; color: var(--ink-faint); font-weight: 700; margin: 10px 2px 0; min-height: 17px; }
+  .shop-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(165px, 1fr)); gap: 10px;
+    overflow-y: auto; margin-top: 10px; padding: 2px 2px 4px;
+  }
+  .card { background: var(--chip); border: 1px solid transparent; border-radius: 16px; padding: 10px; display: flex; flex-direction: column; gap: 3px; transition: transform .15s ease, border-color .15s ease; }
+  .card:hover { transform: translateY(-2px); border-color: var(--line); }
+  .thumb {
+    aspect-ratio: 1; border-radius: 12px; margin-bottom: 6px; display: grid; place-items: center; overflow: hidden;
+    background: radial-gradient(circle at 50% 62%, rgba(255, 255, 255, .75), rgba(255, 255, 255, 0) 68%), var(--chip);
+  }
+  body[data-mood="night"] .thumb { background: radial-gradient(circle at 50% 62%, rgba(140, 150, 255, .28), rgba(0, 0, 0, 0) 68%), var(--chip); }
+  .thumb img { width: 100%; height: 100%; object-fit: contain; animation: fadeIn .4s ease; }
+  .thumb .loading { width: 22px; height: 22px; border-radius: 6px; background: var(--line); animation: breathe 1s ease-in-out infinite; }
+  .c-name { font-family: var(--display); font-weight: 500; font-size: 15.5px; line-height: 1.2; }
+  .c-desc { font-size: 12px; color: var(--ink-dim); line-height: 1.35; flex: 1; }
+  .c-meta { font-size: 11px; font-weight: 800; color: var(--leaf); min-height: 15px; }
+  .buy {
+    margin-top: 6px; border: 0; border-radius: 11px; padding: 8px 10px; cursor: pointer;
+    display: flex; gap: 6px; justify-content: center; align-items: center;
+    background: linear-gradient(#ffe9a0, #f6c94c); color: #5a3e08; font-size: 13.5px; font-weight: 800;
+    box-shadow: inset 0 -2px 0 rgba(160, 100, 0, .25);
+    transition: transform .1s ease, filter .15s ease;
+  }
+  .buy:hover:not(:disabled) { filter: brightness(1.05); }
+  .buy:active:not(:disabled) { transform: translateY(1px); }
+  .buy:disabled { opacity: .5; cursor: not-allowed; filter: grayscale(.4); }
+  .buy.owned { background: var(--leaf); color: #fff; box-shadow: inset 0 -2px 0 rgba(0, 0, 0, .15); }
+  .buy.stored { background: var(--line); color: var(--ink); box-shadow: none; }
+  .buy .coin { width: 16px; height: 16px; }
+
+  /* ---------- tooltip + toasts ---------- */
+  .tip {
+    position: fixed; z-index: 20; pointer-events: none;
+    background: var(--panel-solid); color: var(--ink); border: 1px solid var(--line);
+    border-radius: 12px; padding: 8px 11px; box-shadow: var(--shadow);
+    font-size: 12.5px; line-height: 1.4; max-width: 230px;
+    opacity: 0; transform: translateY(4px); transition: opacity .15s ease, transform .15s ease;
+  }
+  .tip.show { opacity: 1; transform: translateY(0); }
+  .tip b { font-family: var(--display); font-weight: 500; font-size: 14px; display: block; }
+  .tip .sub { color: var(--ink-faint); font-weight: 700; font-size: 11px; }
+  .toasts { position: fixed; top: 62px; left: 50%; transform: translateX(-50%); z-index: 30; display: flex; flex-direction: column; gap: 8px; align-items: center; pointer-events: none; }
+  .toast {
+    background: var(--panel-solid); border: 1px solid var(--line); box-shadow: var(--shadow);
+    border-radius: 14px; padding: 10px 16px; font-size: 14px; font-weight: 700; max-width: min(380px, 90vw); text-align: center;
+    animation: toastIn .45s cubic-bezier(.2,1.4,.4,1) both;
+  }
+  .toast.out { animation: toastOut .4s ease both; }
+  @keyframes toastIn { from { opacity: 0; transform: translateY(-10px) scale(.95); } }
+  @keyframes toastOut { to { opacity: 0; transform: translateY(-8px); } }
+
+  /* ---------- narrow screens: side panels become sheets ---------- */
+  @media (max-width: 980px) {
+    .masthead { top: 20px; font-size: 15px; gap: 6px; }
+    .masthead .sprout { width: 18px; height: 18px; }
+    .masthead .day-note { display: none; }
+    .masthead .sprout { display: none; }
+    .mobile-tabs { display: flex; position: absolute; top: 12px; z-index: 7; gap: 6px; left: 16px; right: 16px; justify-content: space-between; pointer-events: none; }
+    .m-right { display: flex; gap: 6px; pointer-events: auto; }
+    .mobile-tabs .coin-pill { height: 40px; }
+    .garden .head-right .coin-pill { display: none; }
+    .mobile-tabs .icon-btn { pointer-events: auto; width: 40px; height: 40px; background: var(--panel); border: 1px solid var(--line); backdrop-filter: blur(12px); }
+    .tasks, .garden {
+      top: 64px; left: 16px; right: 16px; width: auto; max-height: calc(100vh - 300px);
+      opacity: 0; pointer-events: none; transform: translateY(-8px);
+      transition: opacity .25s ease, transform .25s ease;
+    }
+    .garden { overflow-y: auto; }
+    .tasks.open, .garden.open { opacity: 1; pointer-events: auto; transform: none; z-index: 8; }
+    .timer { bottom: 16px; padding: 12px 14px 14px; }
+    .time { font-size: 56px; }
+  }
+  @media (max-width: 560px) {
+    .masthead { display: none; }
+    .shop { padding: 16px 14px 12px; }
+    .shop-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .card { padding: 8px; }
+    .c-desc { font-size: 11.5px; }
+  }
+  @media (max-height: 640px) and (min-width: 981px) {
+    .time { font-size: 52px; margin: 6px 0 2px; }
+    .caption { margin-bottom: 8px; }
+  }
+</style>
+</head>
+<body data-mood="day">
+<div id="app">
+  <div class="sky day"></div>
+  <div class="sky dusk"></div>
+  <div class="sky night"></div>
+  <div id="scene"></div>
+  <div class="grain"></div>
+
+  <div class="masthead">
+    <svg class="sprout" viewBox="0 0 24 24"><rect x="11" y="10" width="2.4" height="11" rx="1" fill="#5e9a4e"/><rect x="4" y="7" width="8" height="4.4" rx="2" fill="#7cc06a"/><rect x="12" y="4" width="8" height="4.4" rx="2" fill="#5fae5a"/><rect x="6" y="19" width="12" height="3" rx="1.5" fill="#8a5a36"/></svg>
+    Pomodoro Terrarium
+    <span class="day-note" id="dayNote"></span>
+  </div>
+
+  <div class="mobile-tabs">
+    <button class="icon-btn" id="mTasks" aria-label="Tasks"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></svg></button>
+    <div class="m-right"><button class="coin-pill" data-shop aria-label="Open shop"><svg class="coin" viewBox="0 0 20 20" aria-hidden="true"><rect x="4" y="2" width="12" height="16" rx="3" fill="#d99a1e"/><rect x="2" y="4" width="16" height="12" rx="3" fill="#d99a1e"/><rect x="5" y="4.5" width="10" height="11" rx="2" fill="#f7cf4a"/><rect x="8.6" y="6.5" width="2.8" height="7" rx="1" fill="#e0a526"/></svg><span class="coin-count">0</span><span class="shop-label">Shop</span></button>
+    <button class="icon-btn" id="mGarden" aria-label="Garden"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 21v-9"/><path d="M12 12c0-4 3-6 7-6 0 4-3 6-7 6zM12 14c0-3-2.5-5-6-5 0 3 2.5 5 6 5z"/></svg></button>
+    </div>
+  </div>
+
+  <!-- tasks -->
+  <section class="panel tasks" id="tasksPanel">
+    <div class="head"><h2>Tending today</h2><span class="count" id="taskCount"></span></div>
+    <form class="add-row" id="addForm">
+      <input id="taskInput" maxlength="80" placeholder="Plant a task…" autocomplete="off" />
+      <button type="submit" aria-label="Add task">+</button>
+    </form>
+    <ul class="task-list" id="taskList"></ul>
+    <div class="foot">
+      <span>Tap a task to tend it</span>
+      <button class="link-btn" id="clearDone">Clear finished</button>
+    </div>
+  </section>
+
+  <!-- garden -->
+  <aside class="panel garden" id="gardenPanel">
+    <div class="head">
+      <h2>Garden</h2>
+      <div class="head-right"><button class="coin-pill" data-shop aria-label="Open shop"><svg class="coin" viewBox="0 0 20 20" aria-hidden="true"><rect x="4" y="2" width="12" height="16" rx="3" fill="#d99a1e"/><rect x="2" y="4" width="16" height="12" rx="3" fill="#d99a1e"/><rect x="5" y="4.5" width="10" height="11" rx="2" fill="#f7cf4a"/><rect x="8.6" y="6.5" width="2.8" height="7" rx="1" fill="#e0a526"/></svg><span class="coin-count">0</span><span class="shop-label">Shop</span></button>
+      <button class="icon-btn" id="settingsBtn" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg></button>
+      </div>
+    </div>
+    <div class="settings" id="settings">
+      <div class="set-row">Focus <div class="stepper" data-k="focus"><button>−</button><span></span><button>+</button></div></div>
+      <div class="set-row">Short break <div class="stepper" data-k="short"><button>−</button><span></span><button>+</button></div></div>
+      <div class="set-row">Long break <div class="stepper" data-k="long"><button>−</button><span></span><button>+</button></div></div>
+      <div class="set-row">Chimes <button class="toggle" data-t="fx" aria-label="Chimes"></button></div>
+      <div class="set-row">Rain &amp; crickets <button class="toggle" data-t="amb" aria-label="Ambience"></button></div>
+      <div class="set-row">Auto-start breaks <button class="toggle" data-t="autoBreak" aria-label="Auto-start breaks"></button></div>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="v" id="sToday">0</div><div class="l">pomodoros today</div></div>
+      <div class="stat"><div class="v" id="sMinutes">0<small>m</small></div><div class="l">focused today</div></div>
+      <div class="stat"><div class="v" id="sStreak">0</div><div class="l">day streak</div></div>
+      <div class="stat"><div class="v" id="sTotal">0</div><div class="l">all-time blooms</div></div>
+    </div>
+    <div class="section">
+      <div class="eyebrow"><span>Critter journal</span><span id="journalCount"></span></div>
+      <div class="journal" id="journal"></div>
+      <div class="journal-note" id="journalNote">Hover a critter to see how to meet it.</div>
+    </div>
+    <div class="section">
+      <div class="eyebrow"><span>This jar</span><span id="jarCount"></span></div>
+      <div class="jar-meter"><i id="jarMeter" style="width:0%"></i></div>
+    </div>
+    <div class="section">
+      <div class="eyebrow"><span>Jar shelf</span></div>
+      <div class="shelf" id="shelf"></div>
+      <button class="btn full" id="newJar">Shelve this jar &amp; start fresh</button>
+    </div>
+  </aside>
+
+  <!-- timer -->
+  <section class="panel timer" id="timer">
+    <div class="modes" id="modes">
+      <button data-mode="focus" class="on">Focus</button>
+      <button data-mode="short">Short break</button>
+      <button data-mode="long">Long break</button>
+    </div>
+    <div class="time" id="time">25<span class="colon">:</span>00</div>
+    <div class="caption" id="caption"></div>
+    <div class="progress"><i id="progress"></i></div>
+    <div class="controls">
+      <button class="icon-btn side-btn" id="stopBtn" aria-label="Stop" hidden><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2.5"/></svg></button>
+      <button class="main-btn" id="mainBtn">Plant &amp; focus</button>
+      <button class="icon-btn side-btn" id="skipBtn" aria-label="Skip" hidden><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6.5v11a1 1 0 0 0 1.5.86l8.5-5.5a1 1 0 0 0 0-1.72l-8.5-5.5A1 1 0 0 0 6 6.5z"/><rect x="16.5" y="6" width="2.5" height="12" rx="1"/></svg></button>
+    </div>
+    <div class="seeds" id="seeds"></div>
+  </section>
+
+  <!-- shop -->
+  <div class="shop-wrap" id="shop" hidden>
+    <div class="shop-backdrop" data-close></div>
+    <section class="panel shop" role="dialog" aria-modal="true" aria-labelledby="shopTitle">
+      <header class="shop-head">
+        <div>
+          <h2 id="shopTitle">Garden shop</h2>
+          <div class="shop-sub">Finished tasks earn <b>2</b> coins, each bloom earns <b>3</b>.</div>
+        </div>
+        <div class="head-right">
+          <div class="coin-pill static"><svg class="coin" viewBox="0 0 20 20" aria-hidden="true"><rect x="4" y="2" width="12" height="16" rx="3" fill="#d99a1e"/><rect x="2" y="4" width="16" height="12" rx="3" fill="#d99a1e"/><rect x="5" y="4.5" width="10" height="11" rx="2" fill="#f7cf4a"/><rect x="8.6" y="6.5" width="2.8" height="7" rx="1" fill="#e0a526"/></svg><span class="coin-count">0</span></div>
+          <button class="icon-btn" data-close aria-label="Close shop"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+        </div>
+      </header>
+      <div class="modes shop-tabs" id="shopTabs">
+        <button data-cat="flowers" class="on">Flowers</button>
+        <button data-cat="fauna">Critters</button>
+        <button data-cat="accents">Accents</button>
+      </div>
+      <div class="shop-note" id="shopNote"></div>
+      <div class="shop-grid" id="shopGrid"></div>
+    </section>
+  </div>
+
+  <div class="tip" id="tip"></div>
+  <div class="toasts" id="toasts"></div>
+</div>
+
+<script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+<script src="terrarium.js"></script>
+<script src="sound.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
