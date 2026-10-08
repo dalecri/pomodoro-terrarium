@@ -3,7 +3,9 @@
   const $ = id => document.getElementById(id);
   // ?speed=60 makes a minute pass in a second — handy for demoing the garden
   const SPEED = Math.max(1, +new URLSearchParams(location.search).get('speed') || 1);
-  const KEY = 'pomodoro_terrarium_v1';
+  // The island keeps its own save (seeded once from the jar version) so the two
+  // branches never trample each other's gardens.
+  const KEY = 'pomodoro_terrarium_island_v1', JAR_KEY = 'pomodoro_terrarium_v1';
   const MIN = 60000 / SPEED;
 
   const DEFAULTS = {
@@ -57,7 +59,7 @@
   // ---------- persistence ----------
   function load() {
     let saved = {};
-    try { saved = JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) {}
+    try { saved = JSON.parse(localStorage.getItem(KEY) || localStorage.getItem(JAR_KEY)) || {}; } catch (e) {}
     const s = JSON.parse(JSON.stringify(DEFAULTS));
     Object.keys(saved).forEach(k => {
       s[k] = (s[k] && typeof s[k] === 'object' && !Array.isArray(s[k])) ? Object.assign(s[k], saved[k]) : saved[k];
@@ -111,6 +113,8 @@
   // ---------- scene ----------
   Terrarium.init($('scene'));
   Terrarium.load(S.garden);
+  S.garden = Terrarium.serialize();     // plants may have been moved off scenery
+  save();
   Sound.setFx(S.settings.fx);
   Sound.setAmb(S.settings.amb);
 

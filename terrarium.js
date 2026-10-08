@@ -925,7 +925,22 @@
   // --- Public plant API ---
   function load(list) {
     clearPlants();
+    const taken = new Set();
     (list || []).forEach((d, i) => {
+      // plants from an older layout (or the jar) can land on scenery: move them to a free plot
+      let k = d.gx + ',' + d.gz;
+      if (d.gx < 0 || d.gz < 0 || d.gx >= GRID || d.gz >= GRID || RESERVED.has(k) || taken.has(k)) {
+        const free = [];
+        for (let x = 0; x < GRID; x++) for (let z = 0; z < GRID; z++) {
+          const c = x + ',' + z;
+          if (!RESERVED.has(c) && !taken.has(c) && !(list || []).some(o => o !== d && o.gx + ',' + o.gz === c)) free.push({ x, z });
+        }
+        if (!free.length) return;
+        const c = free[(d.seed >>> 0) % free.length];
+        d = Object.assign({}, d, { gx: c.x, gz: c.z });
+        k = c.x + ',' + c.z;
+      }
+      taken.add(k);
       const p = makePlant(d);
       p.popDelay = 0.25 + i * 0.06;   // garden "wakes up" plant by plant
       buildTo(p, d.levels, d.bloomed);
