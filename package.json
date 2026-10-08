@@ -1,0 +1,23 @@
+{
+  "name": "pomodoro-terrarium",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A cozy pomodoro timer where an isometric voxel garden grows while you work.",
+  "scripts": {
+    "build": "node scripts/build-www.mjs",
+    "sync": "npm run build && npx cap sync android",
+    "apk": "npm run sync && node scripts/build-apk.mjs"
+  },
+  "dependencies": {
+    "@capacitor-community/sqlite": "8.1.1",
+    "@capacitor/android": "8.5.3",
+    "@capacitor/app": "8.1.2",
+    "@capacitor/core": "8.5.3",
+    "@fontsource/fredoka": "5.3.0",
+    "@fontsource/nunito": "5.3.0",
+    "three": "0.160.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.5.3"
+  }
+}

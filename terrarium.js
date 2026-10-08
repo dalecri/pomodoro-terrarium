@@ -254,7 +254,9 @@
   function positionCamera() {
     const W = container.clientWidth, H = container.clientHeight;
     const wide = W > 980;
-    const top = wide ? 50 : 60, bottom = wide ? 290 : 280, side = wide ? 330 : 10;
+    const css = getComputedStyle(document.documentElement);
+    const sat = parseFloat(css.getPropertyValue('--sat')) || 0, sab = parseFloat(css.getPropertyValue('--sab')) || 0;
+    const top = (wide ? 50 : 60) + sat, bottom = (wide ? 290 : 280) + sab, side = wide ? 330 : 10;
     const aw = Math.max(W * 0.36, W - 2 * side), ah = Math.max(H * 0.3, H - top - bottom);
     camera.updateMatrixWorld();
     let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;

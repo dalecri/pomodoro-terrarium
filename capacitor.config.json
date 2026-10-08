@@ -1,0 +1,13 @@
+{
+  "appId": "com.pomodoroterrarium.app",
+  "appName": "Pomodoro Terrarium",
+  "webDir": "www",
+  "android": {
+    "backgroundColor": "#85627f"
+  },
+  "plugins": {
+    "CapacitorSQLite": {
+      "androidIsEncryption": false
+    }
+  }
+}

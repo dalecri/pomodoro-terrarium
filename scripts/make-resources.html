@@ -1,0 +1,56 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600&display=swap" rel="stylesheet">
+</head><body>
+<script>
+// Composes the source images that @capacitor/assets turns into Android launcher
+// icons and splash screens. Served from the project root so the mark loads same-origin.
+function sky(g, S) {
+  const bg = g.createLinearGradient(0, 0, 0, S);
+  bg.addColorStop(0, '#6a4b6c'); bg.addColorStop(0.5, '#87647f'); bg.addColorStop(1, '#b08aa0');
+  g.fillStyle = bg; g.fillRect(0, 0, S, S);
+  const glow = g.createRadialGradient(S / 2, S * 0.55, 0, S / 2, S * 0.55, S * 0.5);
+  glow.addColorStop(0, 'rgba(255,225,245,.5)'); glow.addColorStop(1, 'rgba(255,225,245,0)');
+  g.fillStyle = glow; g.fillRect(0, 0, S, S);
+}
+function sparkles(g, S) {
+  [[.15, .17, .01], [.84, .2, .008], [.78, .12, .005], [.2, .3, .005], [.86, .4, .006]].forEach(([x, y, s]) => {
+    g.fillStyle = 'rgba(255,246,251,.8)';
+    g.fillRect(x * S - s * S / 2, y * S - s * S * 1.5, s * S, s * S * 3);
+    g.fillRect(x * S - s * S * 1.5, y * S - s * S / 2, s * S * 3, s * S);
+  });
+}
+function canvas(S) { const c = document.createElement('canvas'); c.width = c.height = S; return [c, c.getContext('2d')]; }
+
+window.__make = async () => {
+  await document.fonts.load('600 160px Fredoka');
+  const mark = new Image();
+  mark.src = '../assets/logo-mark.png';
+  await mark.decode();
+  const out = {};
+
+  let [c, g] = canvas(1024);                 // adaptive foreground: keep inside the 66% safe zone
+  g.drawImage(mark, 1024 * 0.19, 1024 * 0.19, 1024 * 0.62, 1024 * 0.62);
+  out['icon-foreground.png'] = c.toDataURL('image/png');
+
+  [c, g] = canvas(1024);                     // adaptive background
+  sky(g, 1024); sparkles(g, 1024);
+  out['icon-background.png'] = c.toDataURL('image/png');
+
+  [c, g] = canvas(1024);                     // legacy square icon
+  sky(g, 1024); sparkles(g, 1024);
+  g.drawImage(mark, 1024 * 0.1, 1024 * 0.1, 1024 * 0.8, 1024 * 0.8);
+  out['icon-only.png'] = c.toDataURL('image/png');
+
+  for (const name of ['splash.png', 'splash-dark.png']) {
+    [c, g] = canvas(2732);
+    sky(g, 2732); sparkles(g, 2732);
+    g.drawImage(mark, (2732 - 900) / 2, 2732 / 2 - 560, 900, 900);
+    g.font = '600 150px Fredoka'; g.textAlign = 'center'; g.fillStyle = '#fff4fa';
+    g.fillText('Pomodoro Terrarium', 2732 / 2, 2732 / 2 + 520);
+    out[name] = c.toDataURL('image/png');
+  }
+  return out;
+};
+</script>
+</body></html>

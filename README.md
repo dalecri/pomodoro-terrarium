@@ -35,3 +35,17 @@ First-time visitors get a short 5-step walkthrough (replay it from settings: "Sh
 Keys: <kbd>Space</kbd> start/pause · <kbd>N</kbd> new task · <kbd>Esc</kbd> close panels (mobile).
 
 The logo files in `assets/` are rendered by `assets/logo-generator.html`, using the same voxel style as the app.
+
+## Android app
+
+The Android app is a [Capacitor](https://capacitorjs.com) wrapper. three.js and the fonts are bundled, so it works fully offline. Your garden is saved in an on-device SQLite database (`storage.js`), so it survives Android clearing WebView storage, app updates and force-stops. To build a sideloadable debug APK at `dist/pomodoro-terrarium.apk` (needs JDK 21 and the Android SDK):
+
+```bash
+npm install
+```
+
+```bash
+npm run apk
+```
+
+The launcher icons and splash screens are made from `resources/`. `scripts/make-resources.html` renders those source images from the logo.

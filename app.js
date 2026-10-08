@@ -1,5 +1,6 @@
-// Glue: pomodoro timer + tasks → terrarium + UI + sound. Everything persists to localStorage.
-(function () {
+// Glue: pomodoro timer + tasks → terrarium + UI + sound. Everything persists through Store
+// (localStorage on the web, mirrored to SQLite in the Android app).
+Store.ready.then(function () {
   const $ = id => document.getElementById(id);
   // ?speed=60 makes a minute pass in a second — handy for demoing the garden
   const SPEED = Math.max(1, +new URLSearchParams(location.search).get('speed') || 1);
@@ -78,8 +79,8 @@
   let saveTimer = null;
   function save(now) {
     clearTimeout(saveTimer);
-    const write = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
-    if (now) write(); else saveTimer = setTimeout(write, 150);
+    const write = () => Store.set(KEY, JSON.stringify(S));
+    if (now) { write(); Store.flush(); } else saveTimer = setTimeout(write, 150);
   }
   function syncGarden() { S.garden = Terrarium.serialize(); save(); renderStats(); }
 
@@ -880,5 +881,17 @@
   setInterval(tick, 200);
   document.addEventListener('pointerdown', () => Sound.unlock(), { once: true });
 
+  // Android back button: close whatever is open, otherwise tuck the app away
+  // (minimizing rather than exiting keeps a running timer's state warm)
+  if (Store.app) {
+    Store.app.addListener('backButton', () => {
+      if (!$('tour').hidden) endTour('');
+      else if (!$('shop').hidden) closeShop();
+      else if ($('tasksPanel').classList.contains('open') || $('gardenPanel').classList.contains('open')) openSheet(null);
+      else if ($('settings').classList.contains('open')) $('settings').classList.remove('open');
+      else { save(true); Store.app.minimizeApp(); }
+    });
+  }
+
   window.__terrarium = { state: () => S, complete, unlock, earn, startTour };
-})();
+});
