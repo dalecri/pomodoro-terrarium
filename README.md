@@ -5,6 +5,7 @@
 A cozy pomodoro timer where an isometric voxel garden island grows while you work. The island has a dusky-mauve sky, indigo grass, a little cabin with chimney smoke, a lily pond and old blossom trees. Reimagined from
 [typing-speed-terrarium](https://github.com/dalecri/typing-speed-terrarium).
 
+- **Three islands**: *Blossom Hollow* (wood cabin, magenta blossoms, olive pond), *Amber Mill* (stone windmill, autumn maples, ducklings) and *Moonlit Greenhouse* (glass greenhouse, frost blossoms, koi). New users pick one in the intro, and each new garden in the album starts on a different island.
 - **Focus**: a mystery seed sprouts and grows a block at a time as the timer runs, then blooms when it finishes.
 - **Stop early**: the sprout wilts. If you stop in the first minute, the seed just goes back in your pocket.
 - **Finish a task**: it revives a wilted sprout, or pops up something small like a mushroom, moss or a tulip.

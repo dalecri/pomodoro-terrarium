@@ -23,6 +23,7 @@
     owned: {},         // shop critters/accents bought
     placed: {},        // ...and currently shown on the island
     bought: {},        // shop flower purchase counts
+    scene: null,       // which island preset this garden lives on
   };
 
   const CRITTERS = [
@@ -68,6 +69,8 @@
   }
   let S = load();
   if (S.coins == null) S.coins = 5 + COINS.task * S.stats.tasks + COINS.bloom * S.stats.total;
+  // gardens from before island presets keep their original island; brand-new ones get a surprise
+  if (!S.scene) S.scene = (S.seenWelcome || S.garden.length) ? 'hollow' : Terrarium.SCENES[(Math.random() * Terrarium.SCENES.length) | 0].id;
   // the jar-only accents became island accents
   [['mossyFrame', 'mossyRocks'], ['goldenFrame', 'balloon']].forEach(([a, b]) => {
     if (S.owned[a]) { S.owned[b] = true; S.placed[b] = S.placed[a]; delete S.owned[a]; delete S.placed[a]; }
@@ -111,7 +114,7 @@
   }
 
   // ---------- scene ----------
-  Terrarium.init($('scene'));
+  Terrarium.init($('scene'), { scene: S.scene });
   Terrarium.load(S.garden);
   S.garden = Terrarium.serialize();     // plants may have been moved off scenery
   save();
@@ -483,10 +486,14 @@
     S.shelf.unshift({ img: Terrarium.capture(bg), date: Date.now(), plants: S.garden.length });
     S.shelf = S.shelf.slice(0, 12);
     Terrarium.clearPlants();
+    const others = Terrarium.SCENES.filter(sc => sc.id !== S.scene);
+    const next = others[(Math.random() * others.length) | 0];
+    Terrarium.setScene(next.id);
+    S.scene = next.id;
     syncGarden();
     save(true);
     Sound.pop();
-    toast('Saved to your album. Fresh soil, fresh start 🪴');
+    toast(`Saved to your album. Fresh soil on a new island: <b>${next.name}</b> 🪴`, 5000);
     renderShelf(); renderStats();
   });
 
@@ -706,6 +713,11 @@
       target: () => Terrarium.screenRect(), pad: 4,
     },
     {
+      title: 'Pick your island',
+      text: 'Each one has its own home, trees and pond friends. Tap to try them on.',
+      choose: true, target: () => Terrarium.screenRect(), pad: 4,
+    },
+    {
       art: { plant: 'tulip' }, title: 'Plant a task',
       text: 'List what you’re working on and tap one to tend it. Finishing a task grows something small and earns 2 coins.',
       target: () => narrow() ? $('mTasks') : $('tasksPanel'),
@@ -756,12 +768,17 @@
     $('tourTitle').textContent = step.title;
     $('tourText').innerHTML = step.text;
     $('tourForm').hidden = !step.form;
+    $('tourChoices').hidden = !step.choose;
+    if (step.choose) renderChoices();
     $('tourNext').textContent = last ? 'Plant it 🌱' : tourAt === 0 ? 'Show me' : 'Next';
     $('tourSkip').textContent = last ? 'Maybe later' : 'Skip';
     $('tourDots').querySelectorAll('i').forEach((d, i) => d.classList.toggle('on', i === tourAt));
-    const key = JSON.stringify(step.art);
-    if (!tourArt[key]) { try { tourArt[key] = Terrarium.preview(step.art); } catch (e) { tourArt[key] = ''; } }
-    $('tourArt').innerHTML = tourArt[key] ? `<img src="${tourArt[key]}" alt="">` : '';
+    $('tourArt').hidden = !step.art;
+    if (step.art) {
+      const key = JSON.stringify(step.art) + Terrarium.scene();    // tree colors follow the island
+      if (!tourArt[key]) { try { tourArt[key] = Terrarium.preview(step.art); } catch (e) { tourArt[key] = ''; } }
+      $('tourArt').innerHTML = tourArt[key] ? `<img src="${tourArt[key]}" alt="">` : '';
+    }
     placeTour();
     if (step.form) setTimeout(() => $('tourInput').focus(), 350);
     else $('tourNext').focus({ preventScroll: true });
@@ -805,6 +822,23 @@
     card.style.left = Math.round(x) + 'px';
     card.style.top = Math.round(y) + 'px';
   }
+
+  function renderChoices() {
+    $('tourChoices').innerHTML = Terrarium.SCENES.map(sc => `
+      <button type="button" class="choice${sc.id === S.scene ? ' on' : ''}" data-scene="${sc.id}">
+        <span class="sw">${sc.swatch.map(c => `<i style="background:#${c.toString(16).padStart(6, '0')}"></i>`).join('')}</span>
+        <span class="ct"><b>${sc.name}</b><small>${sc.tag}</small></span>
+      </button>`).join('');
+  }
+  $('tourChoices').addEventListener('click', e => {
+    const b = e.target.closest('.choice'); if (!b || b.dataset.scene === S.scene) return;
+    S.scene = b.dataset.scene;
+    Terrarium.setScene(S.scene);
+    syncGarden();
+    syncCritters(); applyExtras();
+    renderChoices();
+    Sound.unlock(); Sound.soft();
+  });
 
   function tourNext() {
     if (tourAt < TOUR.length - 1) { tourAt++; showStep(); Sound.unlock(); Sound.soft(); return; }

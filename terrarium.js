@@ -10,14 +10,62 @@
   const VOX = 1;
   const SOIL_TOP = 0;
   const SKY = 8;                          // ceiling for weather + fireflies
-  const POND = { x0: 3, x1: 5, z0: 5, z1: 7 };
-  const CABIN = { x0: 6, x1: 8, z0: 0, z1: 2 };
+  // ---- Island presets: layout, home, trees, accents and a resident pond critter ----
+  const SCENES = {
+    hollow: {
+      name: 'Blossom Hollow', tag: 'Wood cabin, magenta blossoms, olive pond',
+      grass: [0x4a4a82, 0x4e4e8a, 0x46467c, 0x52528e, 0x4a4a86], tuft: [0x60609c, 0x5a5a98, 0x6a6aa8],
+      blossom: [0xc24a9c, 0xd462b0, 0xa83c8a, 0xe27cc4, 0xb84898], trunk: 0x9a7a58,
+      glow: [0x6a8cff, 0x7fa0ff, 0x5a7aee], flowers: [0x9a6ae0, 0xb084f0, 0x8a5ad0, 0xc0a0ff],
+      pond: { x0: 3, z0: 5, water: 0x8c9a48, opacity: 0.88, bed: 0x3e4a2c, reeds: [0xb04a8a, 0xc060a0, 0x9a3a7a], swimmer: null },
+      home: { type: 'cabin', x: 7, z: 1 },
+      trees: [[1, 1, 4, 1234], [1, 9, 4, 777]],
+      fence: { axis: 'z', at: -HALF + 0.14, from: -3.5, to: 3.5 },
+      props: [['barrel', 9, 0], ['crate', 10, 1]],
+      path: [[7, 3], [6, 4]],
+      spots: { gnome: [8, 3], lamp: [5, 4], bunny: [10, 10], rocks: [0, 10] },
+    },
+    mill: {
+      name: 'Amber Mill', tag: 'Stone windmill, autumn maples, ducklings',
+      grass: [0x485080, 0x4c5488, 0x444c7a, 0x50588c, 0x485084], tuft: [0x5e6a9c, 0x58649a, 0x6874a8],
+      blossom: [0xe8853a, 0xf0a04a, 0xd06a2a, 0xf5c062, 0xe07a34], trunk: 0x8a6a4a,
+      glow: [0xffb04a, 0xffc66a, 0xf09a3a], flowers: [0xffd04a, 0xffe07a, 0xf0b030, 0xffffff],
+      pond: { x0: 6, z0: 6, water: 0x5aa8a0, opacity: 0.85, bed: 0x2e4a4a, reeds: [0xc89a4a, 0xa87a3a, 0xd8b060], swimmer: 'ducks' },
+      home: { type: 'windmill', x: 2, z: 2 },
+      trees: [[9, 1, 4, 4321], [2, 8, 3, 99]],
+      fence: { axis: 'x', at: -HALF + 0.14, from: -1.5, to: 4.5 },
+      props: [['hay', 5, 1], ['pumpkins', 0, 4]],
+      path: [[2, 4], [3, 5]],
+      spots: { gnome: [1, 4], lamp: [4, 5], bunny: [10, 10], rocks: [10, 3] },
+    },
+    grove: {
+      name: 'Moonlit Greenhouse', tag: 'Glass greenhouse, frost blossoms, koi',
+      grass: [0x544a88, 0x584e90, 0x504684, 0x5c5294, 0x544c8c], tuft: [0x6a609e, 0x645aa0, 0x7468ae],
+      blossom: [0x9fb4ff, 0xb8c6ff, 0xdfe5ff, 0x8aa0f0, 0xc8d2ff], trunk: 0xa89a8a,
+      glow: [0xff7ac8, 0xff9ad8, 0xf06ab8], flowers: [0xffffff, 0xe0e6ff, 0xb8c6ff, 0xf0d8ff],
+      pond: { x0: 1, z0: 4, water: 0x9a8ac8, opacity: 0.5, bed: 0x2a2450, reeds: [0x8a9ad0, 0xa0b0e0, 0x7a8ac0], swimmer: 'koi' },
+      home: { type: 'greenhouse', x: 5, z: 1 },
+      trees: [[9, 2, 4, 2468], [10, 7, 3, 1357]],
+      fence: { axis: 'z', at: -HALF + 0.14, from: -5.0, to: -1.5 },
+      props: [['well', 8, 1], ['bench', 4, 7]],
+      path: [[5, 3], [4, 4]],
+      spots: { gnome: [6, 3], lamp: [3, 3], bunny: [10, 10], rocks: [10, 6] },
+    },
+  };
+  let sceneId = 'hollow', SC = SCENES.hollow;
   // cells holding scenery instead of garden plots
   const RESERVED = new Set();
-  for (let x = POND.x0; x <= POND.x1; x++) for (let z = POND.z0; z <= POND.z1; z++) RESERVED.add(x + ',' + z);
-  for (let x = CABIN.x0; x <= CABIN.x1; x++) for (let z = CABIN.z0; z <= CABIN.z1; z++) RESERVED.add(x + ',' + z);
-  // barrel, crate, path stones, old trees, bunny corner, gnome, lamp post, mossy rocks
-  ['9,0', '10,1', '7,3', '6,4', '1,1', '1,9', '10,10', '8,3', '5,4', '0,10'].forEach(c => RESERVED.add(c));
+  function computeReserved() {
+    RESERVED.clear();
+    const add = (x, z) => RESERVED.add(x + ',' + z);
+    for (let x = SC.pond.x0; x < SC.pond.x0 + 3; x++) for (let z = SC.pond.z0; z < SC.pond.z0 + 3; z++) add(x, z);
+    for (let x = SC.home.x - 1; x <= SC.home.x + 1; x++) for (let z = SC.home.z - 1; z <= SC.home.z + 1; z++) add(x, z);
+    SC.props.forEach(([, x, z]) => add(x, z));
+    SC.path.forEach(([x, z]) => add(x, z));
+    SC.trees.forEach(([x, z]) => add(x, z));
+    Object.values(SC.spots).forEach(([x, z]) => add(x, z));
+  }
+  computeReserved();
 
   const COL = {
     soil:     0x5a3a24,
@@ -80,9 +128,11 @@
   let starField;
   let moodName = 'day';
   const moodCur = { exposure: 1.18, stars: 0, glow: 0.2 };
-  let cabin = null;        // { win, smokeAt, roofTop }
+  let home = null;         // the island's house: { g, cat, eave, light, smokeAt?, update? }
+  let sceneGroup = null;
   const smoke = [];
   const decorTrees = [];
+  const sceneAnims = [];   // per-scene ambient motion (sails, ducks, koi)
 
   const plants = [];       // live plant records (data + meshes)
   const particles = [];    // dust
@@ -135,8 +185,9 @@
 
   // ---- Init scene ----
   const ISO_DIR = new THREE.Vector3(1, 0.86, 1).normalize();
-  function init(el) {
+  function init(el, opts) {
     container = el;
+    sceneId = SCENES[(opts || {}).scene] ? opts.scene : 'hollow';
     scene = new THREE.Scene();
 
     const w = container.clientWidth, h = container.clientHeight;
@@ -169,14 +220,13 @@
     L.fill = new THREE.DirectionalLight(0xffffff, 1);  L.fill.position.set(-10, 8, 6);
     L.amb = new THREE.AmbientLight(0xffffff, 1);
     L.hemi = new THREE.HemisphereLight(0xffffff, 0x000000, 1);
-    L.interior = new THREE.PointLight(0xffffff, 1, 7, 1.4);   // cabin window glow
+    L.interior = new THREE.PointLight(0xffffff, 1, 7, 1.4);   // window glow of the island's home
     L.rim = new THREE.DirectionalLight(0xffffff, 1); L.rim.position.set(-8, 6, -12);
     Object.values(L).forEach(l => scene.add(l));
     applyMoodInstant('day');
 
     terrariumGroup = new THREE.Group();
     scene.add(terrariumGroup);
-    L.interior.position.set(cellX(8) + 1.2, 1.2, cellZ(1));
     terrariumGroup.add(L.interior);
 
     plantsGroup = new THREE.Group();
@@ -184,7 +234,7 @@
     critterGroup = new THREE.Group();
     terrariumGroup.add(plantsGroup, fxGroup, critterGroup);
 
-    buildIsland();
+    setScene(sceneId);
     buildDust();
     buildStars();
     buildRain();
@@ -226,7 +276,7 @@
 
   function cellX(ix) { return -HALF + 0.5 + ix; }
   function cellZ(iz) { return -HALF + 0.5 + iz; }
-  function inPond(x, z) { return x >= POND.x0 && x <= POND.x1 && z >= POND.z0 && z <= POND.z1; }
+  function inPond(x, z) { return x >= SC.pond.x0 && x < SC.pond.x0 + 3 && z >= SC.pond.z0 && z < SC.pond.z0 + 3; }
 
   // many same-shaped boxes in one draw call
   function instanced(list, cast) {
@@ -241,13 +291,54 @@
     });
     im.receiveShadow = true;
     im.castShadow = !!cast;
-    terrariumGroup.add(im);
+    sceneGroup.add(im);
     return im;
   }
 
   // =========================================================
-  // The island: layered slab, pond, cabin, fence, props, old trees
+  // The island: layered slab, pond, home, fence, props, old trees.
+  // Everything lives in sceneGroup so a preset can be swapped live.
   // =========================================================
+  function setScene(id) {
+    sceneId = SCENES[id] ? id : 'hollow';
+    SC = SCENES[sceneId];
+    COL.blossom = SC.blossom; COL.trunk = SC.trunk; COL.grass = SC.grass;
+    computeReserved();
+    if (sceneGroup) {
+      terrariumGroup.remove(sceneGroup);
+      sceneGroup.traverse(o => { if (o.isInstancedMesh) o.material.dispose(); });
+    }
+    smoke.forEach(sm => fxGroup.remove(sm.m)); smoke.length = 0;
+    decorTrees.length = 0; sceneAnims.length = 0;
+    sceneGroup = new THREE.Group();
+    terrariumGroup.add(sceneGroup);
+    buildIsland();
+    L.interior.position.copy(home.light);
+
+    // re-seat everything that lives on the scenery
+    const crit = { snail: !!critters.snail, ladybug: !!critters.ladybug, frog: !!critters.frog };
+    setCritters({}); setCritters(crit);
+    const ex = {}; Object.keys(extras).forEach(k => { ex[k] = true; });
+    setExtras({}); setExtras(ex);
+    // plants standing on new scenery hop to the nearest free plot
+    const taken = new Set();
+    plants.forEach(pl => {
+      const k = pl.gx + ',' + pl.gz;
+      if (!RESERVED.has(k) && !taken.has(k)) { taken.add(k); return; }
+      let best = null, bd = 1e9;
+      for (let x = 0; x < GRID; x++) for (let z = 0; z < GRID; z++) {
+        const c = x + ',' + z;
+        if (RESERVED.has(c) || taken.has(c) || plants.some(o => o !== pl && o.gx === x && o.gz === z)) continue;
+        const d = (x - pl.gx) ** 2 + (z - pl.gz) ** 2;
+        if (d < bd) { bd = d; best = { x, z }; }
+      }
+      if (!best) return;
+      pl.gx = best.x; pl.gz = best.z;
+      pl.group.position.set(cellX(best.x), SOIL_TOP, cellZ(best.z));
+      taken.add(best.x + ',' + best.z);
+    });
+  }
+
   function buildIsland() {
     const r = mulberry32(42);
     const ground = [];
@@ -259,125 +350,285 @@
       }
       const edge = x === 0 || z === 0 || x === GRID - 1 || z === GRID - 1;
       const dip = edge && r() < 0.14 ? -0.1 : 0;     // hand-made wobble on the rim
-      ground.push({ x: X, y: dip - 0.2, z: Z, w: 1, h: 0.4, d: 1, hex: pick(COL.grass, r) });
+      ground.push({ x: X, y: dip - 0.2, z: Z, w: 1, h: 0.4, d: 1, hex: pick(SC.grass, r) });
       ground.push({ x: X, y: -1.0, z: Z, w: 1, h: 1.2, d: 1, hex: pick(COL.dirt, r) });
       ground.push({ x: X, y: -2.1, z: Z, w: 1, h: 1.0, d: 1, hex: pick(COL.deep, r) });
     }
     instanced(ground);
 
-    // grass texture: little tufts and darker patches
-    const tufts = [];
+    // grass texture: little tufts
+    const tufts = [], H0 = SC.home;
     for (let i = 0; i < 90; i++) {
       const x = R(r, -HALF + 0.15, HALF - 0.15), z = R(r, -HALF + 0.15, HALF - 0.15);
       const gx = Math.floor(x + HALF), gz = Math.floor(z + HALF);
-      if (inPond(gx, gz) || (gx >= CABIN.x0 && gx <= CABIN.x1 && gz <= CABIN.z1)) continue;
+      if (inPond(gx, gz) || (Math.abs(gx - H0.x) <= 1 && Math.abs(gz - H0.z) <= 1)) continue;
       const tall = r() < 0.5;
-      tufts.push({ x, y: tall ? 0.09 : 0.03, z, w: 0.12, h: tall ? 0.18 : 0.06, d: tall ? 0.12 : 0.3, hex: pick(COL.tuft, r), ry: R(r, 0, 3) });
+      tufts.push({ x, y: tall ? 0.09 : 0.03, z, w: 0.12, h: tall ? 0.18 : 0.06, d: tall ? 0.12 : 0.3, hex: pick(SC.tuft, r), ry: R(r, 0, 3) });
     }
     instanced(tufts);
 
     buildPond(r);
-    buildCabin();
+    home = HOMES[SC.home.type](cellX(SC.home.x), cellZ(SC.home.z));
     buildFence();
     buildProps(r);
     buildDecor(r);
-    decorTree(1, 1, 4, 1234);
-    decorTree(1, 9, 4, 777);
+    SC.trees.forEach(([gx, gz, h, seed]) => decorTree(gx, gz, h, seed));
   }
 
   function buildPond(r) {
-    const cx = (cellX(POND.x0) + cellX(POND.x1)) / 2, cz = (cellZ(POND.z0) + cellZ(POND.z1)) / 2;
-    const w = POND.x1 - POND.x0 + 1, d = POND.z1 - POND.z0 + 1;
-    const bed = new THREE.Mesh(geo(w, 0.1, d), mat(0x3e4a2c));
+    const P = SC.pond;
+    const cx = cellX(P.x0 + 1), cz = cellZ(P.z0 + 1);
+    const bed = new THREE.Mesh(geo(3, 0.1, 3), mat(P.bed));
     bed.position.set(cx, -0.78, cz); bed.receiveShadow = true;
-    terrariumGroup.add(bed);
-    const water = new THREE.Mesh(geo(w, 0.06, d), new THREE.MeshLambertMaterial({ color: 0x8c9a48, transparent: true, opacity: 0.88 }));
+    sceneGroup.add(bed);
+    const water = new THREE.Mesh(geo(3, 0.06, 3), new THREE.MeshLambertMaterial({ color: P.water, transparent: true, opacity: P.opacity, depthWrite: false }));
     water.position.set(cx, -0.3, cz); water.receiveShadow = true;
-    terrariumGroup.add(water);
+    water.renderOrder = 2;
+    sceneGroup.add(water);
     // pads (the frog hops between the first two)
     [[cx - 0.6, cz - 0.6], [cx + 0.7, cz + 0.7], [cx + 0.8, cz - 0.9]].forEach(([x, z], i) => {
       const pad = new THREE.Mesh(geo(i === 2 ? 0.38 : 0.6, 0.05, i === 2 ? 0.38 : 0.6), mat(0x5a8a4a));
       pad.position.set(x, -0.25, z); pad.rotation.y = R(r, 0, 1);
-      terrariumGroup.add(pad);
-      if (i === 2) { const f = new THREE.Mesh(geo(0.14, 0.12, 0.14), mat(0xff9acb)); f.position.set(x, -0.17, z); terrariumGroup.add(f); }
+      sceneGroup.add(pad);
+      if (i === 2) { const f = new THREE.Mesh(geo(0.14, 0.12, 0.14), mat(pick(SC.flowers, r))); f.position.set(x, -0.17, z); sceneGroup.add(f); }
     });
-    // magenta reeds poking out of the water
+    // reeds poking out of the water
     [[-1.3, -1.3], [-1.25, -1.0], [-0.95, -1.35], [1.3, 1.2], [1.25, 0.9], [-1.3, 1.3]].forEach(([dx, dz]) => {
       const h = R(r, 0.6, 1.3);
-      const reed = new THREE.Mesh(geo(0.08, h, 0.08), mat(pick([0xb04a8a, 0xc060a0, 0x9a3a7a], r)));
+      const reed = new THREE.Mesh(geo(0.08, h, 0.08), mat(pick(P.reeds, r)));
       reed.position.set(cx + dx, -0.3 + h / 2, cz + dz); reed.castShadow = true;
-      terrariumGroup.add(reed);
+      sceneGroup.add(reed);
     });
-    pondInfo.water = water;
     pondInfo.pads = [new THREE.Vector3(cx - 0.6, -0.22, cz - 0.6), new THREE.Vector3(cx + 0.7, -0.22, cz + 0.7)];
+    if (P.swimmer === 'ducks') swimmers(cx, cz, 2, () => {
+      const g = new THREE.Group();
+      part(g, 0xffd84a, 0.26, 0.18, 0.34, 0, 0.09, 0);
+      part(g, 0xffd84a, 0.17, 0.17, 0.17, 0, 0.26, 0.13);
+      part(g, 0xf08a2a, 0.08, 0.05, 0.1, 0, 0.24, 0.25);
+      part(g, 0x2a1a24, 0.03, 0.04, 0.03, 0.07, 0.29, 0.2);
+      part(g, 0x2a1a24, 0.03, 0.04, 0.03, -0.07, 0.29, 0.2);
+      part(g, 0xf0c03a, 0.1, 0.08, 0.1, 0, 0.16, -0.18);
+      return { g, y: -0.28, rad: 0.75, speed: 0.35, bob: 0.02 };
+    });
+    if (P.swimmer === 'koi') swimmers(cx, cz, 3, i => {
+      const g = new THREE.Group();
+      const main = [0xff8a3a, 0xfff4ea, 0xff6a3a][i];
+      part(g, main, 0.12, 0.08, 0.36, 0, 0, 0);
+      part(g, i === 1 ? 0xff7a3a : 0xffffff, 0.1, 0.085, 0.12, 0, 0.005, 0.06);
+      part(g, main, 0.16, 0.03, 0.12, 0, 0, -0.24);
+      return { g, y: -0.4, rad: 0.5 + i * 0.25, speed: 0.5 - i * 0.08, bob: 0 };
+    });
   }
   const pondInfo = {};
 
-  function buildCabin() {
-    const g = new THREE.Group();
-    g.position.set(cellX(7), 0, cellZ(1));
-    const W = 2.6, D = 2.6, H = 1.9;
-    for (let i = 0; i < 6; i++) part(g, i % 2 ? 0x6e4e36 : 0x7a5a40, W, 0.32, D, 0, 0.16 + i * 0.32, 0);
-    [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz]) => part(g, 0x4a3426, 0.22, H + 0.05, 0.22, sx * W / 2, H / 2, sz * D / 2));
-    // door (+z face)
-    part(g, 0x4a3426, 0.72, 1.18, 0.08, 0, 0.6, D / 2 + 0.03);
-    part(g, 0x5e4230, 0.56, 1.06, 0.08, 0, 0.55, D / 2 + 0.06);
-    part(g, 0xd8b060, 0.07, 0.07, 0.05, 0.18, 0.55, D / 2 + 0.11);
-    // window (+x face), glows from dusk on
-    part(g, 0x4a3426, 0.08, 0.72, 0.82, W / 2 + 0.03, 1.15, 0);
-    const win = new THREE.Mesh(geo(0.06, 0.54, 0.64), glowMat(0xffc670));
-    win.position.set(W / 2 + 0.06, 1.15, 0);
-    g.add(win);
-    part(g, 0x4a3426, 0.1, 0.06, 0.66, W / 2 + 0.09, 1.15, 0);
-    part(g, 0x4a3426, 0.1, 0.56, 0.06, W / 2 + 0.09, 1.15, 0);
-    part(g, 0x6a4a34, 0.2, 0.16, 0.86, W / 2 + 0.13, 0.76, 0);       // window box
-    [0xff8fc8, 0xb084f0, 0xff8fc8, 0xc0a0ff].forEach((c, i) => part(g, c, 0.13, 0.13, 0.13, W / 2 + 0.15, 0.9, -0.3 + i * 0.2));
-    // stepped plank roof, ridge along x
-    let k = 0;
-    for (; k < 6; k++) part(g, k % 2 ? 0x4e3c32 : 0x5a463a, W + 0.5, 0.26, D + 0.6 - k * 0.55, 0, H + 0.13 + k * 0.26, 0);
-    const roofTop = H + k * 0.26;
-    // stone chimney
-    part(g, 0x7a7690, 0.46, 1.1, 0.46, -0.75, H + 1.1, -0.55);
-    part(g, 0x6a6680, 0.56, 0.12, 0.56, -0.75, H + 1.66, -0.55);
-    part(g, 0x8a86a0, 0.9, 0.12, 0.42, 0, 0.06, D / 2 + 0.26);        // porch step
-    terrariumGroup.add(g);
-    cabin = {
-      g, win, roofTop,
-      smokeAt: new THREE.Vector3(g.position.x - 0.75, H + 1.8, g.position.z - 0.55),
-      smokeIn: 0,
-    };
+  // little critters that circle the pond for the whole session
+  function swimmers(cx, cz, n, make) {
+    for (let i = 0; i < n; i++) {
+      const sw = make(i);
+      sceneGroup.add(sw.g);
+      const phase = i * Math.PI * 2 / n + Math.random();
+      sceneAnims.push((dt, t) => {
+        const a = phase + t * sw.speed * (i % 2 ? -1 : 1) * 0.6;
+        const rad = sw.rad + Math.sin(t * 0.4 + i) * 0.12;
+        sw.g.position.set(cx + Math.cos(a) * rad, sw.y + Math.sin(t * 3 + i) * sw.bob, cz + Math.sin(a) * rad);
+        sw.g.rotation.y = -a + (i % 2 ? 0 : Math.PI);
+      });
+    }
   }
+
+  // ---- homes: each returns where the cat naps, where fairy lights hang, where the window glows ----
+  const HOMES = {
+    cabin(X, Z) {
+      const g = new THREE.Group();
+      g.position.set(X, 0, Z);
+      const W = 2.6, D = 2.6, H = 1.9;
+      for (let i = 0; i < 6; i++) part(g, i % 2 ? 0x6e4e36 : 0x7a5a40, W, 0.32, D, 0, 0.16 + i * 0.32, 0);
+      [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz]) => part(g, 0x4a3426, 0.22, H + 0.05, 0.22, sx * W / 2, H / 2, sz * D / 2));
+      part(g, 0x4a3426, 0.72, 1.18, 0.08, 0, 0.6, D / 2 + 0.03);
+      part(g, 0x5e4230, 0.56, 1.06, 0.08, 0, 0.55, D / 2 + 0.06);
+      part(g, 0xd8b060, 0.07, 0.07, 0.05, 0.18, 0.55, D / 2 + 0.11);
+      part(g, 0x4a3426, 0.08, 0.72, 0.82, W / 2 + 0.03, 1.15, 0);
+      const win = new THREE.Mesh(geo(0.06, 0.54, 0.64), glowMat(0xffc670));
+      win.position.set(W / 2 + 0.06, 1.15, 0);
+      g.add(win);
+      part(g, 0x4a3426, 0.1, 0.06, 0.66, W / 2 + 0.09, 1.15, 0);
+      part(g, 0x4a3426, 0.1, 0.56, 0.06, W / 2 + 0.09, 1.15, 0);
+      part(g, 0x6a4a34, 0.2, 0.16, 0.86, W / 2 + 0.13, 0.76, 0);
+      SC.flowers.concat(SC.flowers).slice(0, 4).forEach((c, i) => part(g, c, 0.13, 0.13, 0.13, W / 2 + 0.15, 0.9, -0.3 + i * 0.2));
+      let k = 0;
+      for (; k < 6; k++) part(g, k % 2 ? 0x4e3c32 : 0x5a463a, W + 0.5, 0.26, D + 0.6 - k * 0.55, 0, H + 0.13 + k * 0.26, 0);
+      const roofTop = H + k * 0.26;
+      part(g, 0x7a7690, 0.46, 1.1, 0.46, -0.75, H + 1.1, -0.55);
+      part(g, 0x6a6680, 0.56, 0.12, 0.56, -0.75, H + 1.66, -0.55);
+      part(g, 0x8a86a0, 0.9, 0.12, 0.42, 0, 0.06, D / 2 + 0.26);
+      sceneGroup.add(g);
+      return {
+        g,
+        cat: { pos: new THREE.Vector3(X + 0.2, roofTop - 0.02, Z), ry: 0 },
+        eave: new THREE.Vector3(X - 1.55, 1.95, Z + 1.55),
+        light: new THREE.Vector3(X + 2.2, 1.2, Z),
+        smokeAt: new THREE.Vector3(X - 0.75, H + 1.8, Z - 0.55), smokeIn: 0,
+      };
+    },
+
+    windmill(X, Z) {
+      const g = new THREE.Group();
+      g.position.set(X, 0, Z);
+      part(g, 0x8a86a0, 3.0, 0.3, 3.0, 0, 0.15, 0);
+      const stones = [0xc8c0d0, 0xb8b0c4, 0xd0c8d8];
+      let y = 0.3, w = 2.1;
+      for (let i = 0; i < 8; i++) {
+        part(g, stones[i % 3], w, 0.45, w, 0, y + 0.225, 0);
+        y += 0.45; w -= 0.11;
+      }
+      // door + window
+      part(g, 0x4a3426, 0.62, 1.02, 0.08, 0, 0.82, 2.1 / 2 + 0.03);
+      part(g, 0x6a4a34, 0.5, 0.92, 0.08, 0, 0.78, 2.1 / 2 + 0.06);
+      part(g, 0x4a3426, 0.08, 0.6, 0.6, 1.75 / 2 + 0.05, 2.3, 0);
+      const win = new THREE.Mesh(geo(0.06, 0.44, 0.44), glowMat(0xffc670));
+      win.position.set(1.75 / 2 + 0.09, 2.3, 0);
+      g.add(win);
+      // stepped red roof
+      for (let i = 0; i < 4; i++) part(g, i % 2 ? 0x9a4a3a : 0x8a3e32, 1.7 - i * 0.4, 0.26, 1.7 - i * 0.4, 0, y + 0.13 + i * 0.26, 0);
+      part(g, 0xd8b060, 0.12, 0.3, 0.12, 0, y + 1.2, 0);
+      // sails on the front face, turning slowly
+      const sails = new THREE.Group();
+      sails.position.set(0, y - 0.55, w / 2 + 0.5);
+      part(sails, 0x5a4030, 0.3, 0.3, 0.24, 0, 0, 0);
+      for (let i = 0; i < 4; i++) {
+        const arm = new THREE.Group();
+        arm.rotation.z = i * Math.PI / 2;
+        part(arm, 0x6a4a34, 0.1, 1.75, 0.08, 0, 0.95, 0);
+        part(arm, 0xf2e8d8, 0.42, 1.25, 0.04, 0.27, 1.15, 0.02);
+        part(arm, 0x8a6a4a, 0.04, 1.25, 0.06, 0.27, 1.15, 0.03);
+        sails.add(arm);
+      }
+      g.add(sails);
+      sceneGroup.add(g);
+      sceneAnims.push(dt => { sails.rotation.z -= dt * 0.55; });
+      return {
+        g,
+        cat: { pos: new THREE.Vector3(X + 1.25, 0.31, Z - 0.1), ry: -Math.PI / 2 },
+        eave: new THREE.Vector3(X + 0.7, y - 0.2, Z + 0.7),
+        light: new THREE.Vector3(X + 1.8, 2.3, Z),
+      };
+    },
+
+    greenhouse(X, Z) {
+      const g = new THREE.Group();
+      g.position.set(X, 0, Z);
+      const W = 2.7, D = 2.5, frame = 0xf4f0ea;
+      part(g, 0x8a86a0, W, 0.35, D, 0, 0.175, 0);
+      const glass = new THREE.MeshLambertMaterial({ color: 0xd8ecff, transparent: true, opacity: 0.22, depthWrite: false });
+      const pane = new THREE.Mesh(geo(W - 0.06, 1.4, D - 0.06), glass);
+      pane.position.y = 1.05; pane.renderOrder = 3;
+      g.add(pane);
+      // frame posts + rails
+      for (const sx of [-1, -0.33, 0.33, 1]) for (const sz of [-1, 1]) part(g, frame, 0.07, 1.42, 0.07, sx * W / 2, 1.05, sz * D / 2);
+      for (const sz of [-0.33, 0.33]) for (const sx of [-1, 1]) part(g, frame, 0.07, 1.42, 0.07, sx * W / 2, 1.05, sz * D / 2);
+      part(g, frame, W + 0.04, 0.07, 0.07, 0, 1.76, D / 2); part(g, frame, W + 0.04, 0.07, 0.07, 0, 1.76, -D / 2);
+      part(g, frame, 0.07, 0.07, D + 0.04, W / 2, 1.76, 0); part(g, frame, 0.07, 0.07, D + 0.04, -W / 2, 1.76, 0);
+      // glass gable roof, ridge along x
+      [-1, 1].forEach(sz => {
+        const roof = new THREE.Mesh(geo(W + 0.1, 0.05, D / 2 + 0.22), glass);
+        roof.position.set(0, 2.08, sz * D / 4);
+        roof.rotation.x = sz * 0.5;
+        roof.renderOrder = 3;
+        g.add(roof);
+        for (const sx of [-1, 0, 1]) {
+          const raf = part(g, frame, 0.07, 0.06, D / 2 + 0.22, sx * W / 2, 2.08, sz * D / 4);
+          raf.rotation.x = sz * 0.5;
+        }
+      });
+      part(g, frame, W + 0.14, 0.09, 0.09, 0, 2.38, 0);
+      // door outline on the front
+      part(g, frame, 0.07, 1.2, 0.08, -0.32, 0.95, D / 2 + 0.03); part(g, frame, 0.07, 1.2, 0.08, 0.32, 0.95, D / 2 + 0.03);
+      part(g, 0xd8b060, 0.06, 0.06, 0.05, 0.2, 0.95, D / 2 + 0.08);
+      // glowing seedlings inside
+      [[-0.8, -0.6], [0, -0.7], [0.8, -0.6], [-0.85, 0.5], [0.85, 0.5]].forEach(([x, z], i) => {
+        part(g, 0x6a4a34, 0.5, 0.22, 0.4, x, 0.46, z);
+        part(g, 0x5aa86a, 0.06, 0.4, 0.06, x, 0.75, z);
+        const bloom = new THREE.Mesh(geo(0.2, 0.2, 0.2), glowMat([0xff9ad8, 0x9fe8d0, 0xc8a0ff][i % 3]));
+        bloom.position.set(x, 1.0, z);
+        g.add(bloom);
+      });
+      sceneGroup.add(g);
+      return {
+        g,
+        cat: { pos: new THREE.Vector3(X + 0.2, 2.42, Z), ry: 0 },
+        eave: new THREE.Vector3(X - W / 2, 1.8, Z + D / 2),
+        light: new THREE.Vector3(X, 1.1, Z),
+      };
+    },
+  };
 
   function buildFence() {
-    const x = -HALF + 0.14;
-    for (let z = -3.5; z <= 3.5; z += 1) part(terrariumGroup, 0x6a4a34, 0.14, 0.72, 0.14, x, 0.36, z);
-    part(terrariumGroup, 0x7a5a40, 0.08, 0.08, 7.1, x, 0.56, 0);
-    part(terrariumGroup, 0x7a5a40, 0.08, 0.08, 7.1, x, 0.28, 0);
+    const F = SC.fence, len = F.to - F.from;
+    const at = (u, y, w, h, d) => F.axis === 'z'
+      ? part(sceneGroup, 0x6a4a34, w, h, d, F.at, y, u)
+      : part(sceneGroup, 0x6a4a34, d, h, w, u, y, F.at);
+    for (let u = F.from; u <= F.to + 0.01; u += 1) at(u, 0.36, 0.14, 0.72, 0.14);
+    [0.56, 0.28].forEach(y => {
+      const rail = at((F.from + F.to) / 2, y, 0.08, 0.08, len + 0.1);
+      rail.material = mat(0x7a5a40);
+    });
   }
 
+  const PROPS = {
+    barrel(X, Z) {
+      part(sceneGroup, 0x7a5a40, 0.6, 0.72, 0.6, X, 0.36, Z);
+      part(sceneGroup, 0x3a3530, 0.64, 0.06, 0.64, X, 0.16, Z);
+      part(sceneGroup, 0x3a3530, 0.64, 0.06, 0.64, X, 0.56, Z);
+      part(sceneGroup, 0x5e4230, 0.5, 0.04, 0.5, X, 0.73, Z);
+    },
+    crate(X, Z) {
+      part(sceneGroup, 0xa07e54, 0.58, 0.58, 0.58, X, 0.29, Z);
+      part(sceneGroup, 0x7a5a3a, 0.62, 0.08, 0.62, X, 0.54, Z);
+      part(sceneGroup, 0x7a5a3a, 0.62, 0.08, 0.62, X, 0.04, Z);
+    },
+    hay(X, Z) {
+      part(sceneGroup, 0xe0c060, 0.82, 0.5, 0.56, X, 0.25, Z).rotation.y = 0.3;
+      part(sceneGroup, 0xb89a40, 0.84, 0.52, 0.06, X, 0.25, Z).rotation.y = 0.3;
+      part(sceneGroup, 0xe8cc70, 0.6, 0.4, 0.44, X + 0.1, 0.7, Z - 0.05).rotation.y = -0.2;
+    },
+    pumpkins(X, Z) {
+      [[0, 0, 0.42], [0.32, 0.22, 0.3], [-0.26, 0.25, 0.26]].forEach(([dx, dz, s]) => {
+        part(sceneGroup, 0xf08a2a, s, s * 0.8, s, X + dx, s * 0.4, Z + dz);
+        part(sceneGroup, 0xe0782a, s * 0.4, s * 0.82, s * 1.02, X + dx, s * 0.4, Z + dz);
+        part(sceneGroup, 0x5a8a3a, 0.06, 0.12, 0.06, X + dx, s * 0.8 + 0.05, Z + dz);
+      });
+    },
+    well(X, Z) {
+      const st = [0x8a86a0, 0x9692ac, 0x7a7690];
+      [[0, 0.34, 0.7, 0.12], [0, -0.34, 0.7, 0.12], [0.34, 0, 0.12, 0.7], [-0.34, 0, 0.12, 0.7]].forEach(([dx, dz, w, d], i) =>
+        part(sceneGroup, st[i % 3], w + 0.02, 0.5, d + 0.02, X + dx, 0.25, Z + dz));
+      const w = new THREE.Mesh(geo(0.56, 0.04, 0.56), new THREE.MeshLambertMaterial({ color: SC.pond.water }));
+      w.position.set(X, 0.32, Z); sceneGroup.add(w);
+      part(sceneGroup, 0x6a4a34, 0.07, 0.8, 0.07, X - 0.34, 0.9, Z); part(sceneGroup, 0x6a4a34, 0.07, 0.8, 0.07, X + 0.34, 0.9, Z);
+      part(sceneGroup, 0x5a463a, 0.9, 0.08, 0.5, X, 1.33, Z - 0.12).rotation.x = -0.5;
+      part(sceneGroup, 0x5a463a, 0.9, 0.08, 0.5, X, 1.33, Z + 0.12).rotation.x = 0.5;
+      part(sceneGroup, 0x7a5a40, 0.18, 0.16, 0.18, X, 0.78, Z);
+    },
+    bench(X, Z) {
+      part(sceneGroup, 0x8a6a4a, 0.9, 0.08, 0.32, X, 0.34, Z).rotation.y = Math.PI / 4;
+      part(sceneGroup, 0x7a5a40, 0.9, 0.24, 0.06, X - 0.1, 0.56, Z - 0.1).rotation.y = Math.PI / 4;
+      [[-0.3, -0.3], [0.3, 0.3]].forEach(([dx, dz]) => part(sceneGroup, 0x5a4030, 0.08, 0.34, 0.24, X + dx * 0.9, 0.17, Z + dz * 0.9).rotation.y = Math.PI / 4);
+    },
+  };
+
   function buildProps(r) {
-    // barrel
-    const bx = cellX(9), bz = cellZ(0);
-    part(terrariumGroup, 0x7a5a40, 0.6, 0.72, 0.6, bx, 0.36, bz);
-    part(terrariumGroup, 0x3a3530, 0.64, 0.06, 0.64, bx, 0.16, bz);
-    part(terrariumGroup, 0x3a3530, 0.64, 0.06, 0.64, bx, 0.56, bz);
-    part(terrariumGroup, 0x5e4230, 0.5, 0.04, 0.5, bx, 0.73, bz);
-    // crate
-    const cx = cellX(10), cz = cellZ(1);
-    part(terrariumGroup, 0xa07e54, 0.58, 0.58, 0.58, cx, 0.29, cz);
-    part(terrariumGroup, 0x7a5a3a, 0.62, 0.08, 0.62, cx, 0.54, cz);
-    part(terrariumGroup, 0x7a5a3a, 0.62, 0.08, 0.62, cx, 0.04, cz);
-    // stepping stones from the cabin door to the pond
-    [[7, 3], [6, 4]].forEach(([gx, gz]) => {
+    SC.props.forEach(([kind, gx, gz]) => PROPS[kind](cellX(gx), cellZ(gz)));
+    // stepping stones from the front door
+    SC.path.forEach(([gx, gz]) => {
       [[-0.18, -0.15], [0.2, 0.18]].forEach(([dx, dz]) => {
-        const st = part(terrariumGroup, pick(COL.stone, r), 0.42, 0.08, 0.36, cellX(gx) + dx, 0.04, cellZ(gz) + dz);
+        const st = part(sceneGroup, pick(COL.stone, r), 0.42, 0.08, 0.36, cellX(gx) + dx, 0.04, cellZ(gz) + dz);
         st.rotation.y = R(r, -0.4, 0.4);
         st.receiveShadow = true;
       });
     });
   }
 
-  // purple flowers, glowing blue mushrooms, little rocks at cell corners
+  // flowers, glowing mushrooms, little rocks at cell corners
   function buildDecor(r) {
     for (let i = 0; i < 46; i++) {
       const gx = (r() * GRID) | 0, gz = (r() * GRID) | 0;
@@ -385,24 +636,24 @@
       const x = cellX(gx) + (r() < 0.5 ? -0.42 : 0.42), z = cellZ(gz) + (r() < 0.5 ? -0.42 : 0.42);
       const kind = r();
       if (kind < 0.45) {
-        part(terrariumGroup, 0x4f7f5a, 0.04, 0.2, 0.04, x, 0.1, z);
-        part(terrariumGroup, pick(COL.purple, r), 0.12, 0.12, 0.12, x, 0.24, z);
+        part(sceneGroup, 0x4f7f5a, 0.04, 0.2, 0.04, x, 0.1, z);
+        part(sceneGroup, pick(SC.flowers, r), 0.12, 0.12, 0.12, x, 0.24, z);
       } else if (kind < 0.8) {
-        part(terrariumGroup, 0xe8e4f4, 0.06, 0.12, 0.06, x, 0.06, z);
-        const cap = new THREE.Mesh(geo(0.18, 0.08, 0.18), glowMat(pick(COL.mushBlue, r)));
+        part(sceneGroup, 0xe8e4f4, 0.06, 0.12, 0.06, x, 0.06, z);
+        const cap = new THREE.Mesh(geo(0.18, 0.08, 0.18), glowMat(pick(SC.glow, r)));
         cap.position.set(x, 0.16, z);
-        terrariumGroup.add(cap);
+        sceneGroup.add(cap);
       } else {
-        part(terrariumGroup, pick(COL.stone, r), 0.2, 0.12, 0.16, x, 0.06, z).rotation.y = R(r, 0, 2);
+        part(sceneGroup, pick(COL.stone, r), 0.2, 0.12, 0.16, x, 0.06, z).rotation.y = R(r, 0, 2);
       }
     }
   }
 
-  // two old blossom trees that come with the island
+  // the island's old trees
   function decorTree(gx, gz, h, seed) {
     const group = new THREE.Group();
     group.position.set(cellX(gx), 0, cellZ(gz));
-    terrariumGroup.add(group);
+    sceneGroup.add(group);
     const p = { kind: 'tree', gx, gz, h, seed, state: 'alive', group, blocks: [], built: h, crownBuilt: true };
     for (let lv = 0; lv < h; lv++) SPECIES.tree.level(p, lv, rngFor(seed, lv));
     SPECIES.tree.crown(p, rngFor(seed, 99));
@@ -1093,8 +1344,9 @@
     part(g, 0x1c1c22, 0.07, 0.03, 0.07, -0.05, 0.15, 0.06);
     part(g, 0x1c1c22, 0.07, 0.03, 0.07, 0.06, 0.15, -0.06);
     part(g, 0x1c1c22, 0.02, 0.03, 0.24, 0, 0.15, 0);
-    g.position.set(-HALF + 0.14, 0.6, 0);          // walks the fence rail
-    return { g, dir: 1, speed: 0.35, pause: 2, t: 0 };
+    const F = SC.fence, mid = (F.from + F.to) / 2;   // walks the fence rail
+    if (F.axis === 'z') g.position.set(F.at, 0.6, mid); else g.position.set(mid, 0.6, F.at);
+    return { g, dir: 1, speed: 0.35, pause: 2, t: 0, axis: F.axis, lo: F.from + 0.3, hi: F.to - 0.3 };
   }
 
   function makeFrog() {
@@ -1207,7 +1459,7 @@
         return { g, nose, ears };
       },
       place(e) {
-        e.g.position.set(cellX(10), 0, cellZ(10));
+        e.g.position.set(cellX(SC.spots.bunny[0]), 0, cellZ(SC.spots.bunny[1]));
         e.g.rotation.y = Math.PI / 4;
         e.flopIn = rand(3, 8); e.flop = 0; e.hopIn = rand(6, 12); e.hop = -1;
       },
@@ -1257,8 +1509,8 @@
         return { g, body, head, tip };
       },
       place(e) {
-        e.g.position.set(cabin.g.position.x + 0.2, cabin.roofTop - 0.02, cabin.g.position.z);   // napping on the roof ridge
-        e.g.rotation.y = 0;
+        e.g.position.copy(home.cat.pos);              // napping on the island's home
+        e.g.rotation.y = home.cat.ry;
         e.zIn = 1; e.zz = [];
       },
       update(e, dt, t) {
@@ -1309,7 +1561,8 @@
         return { g, lids };
       },
       place(e) {
-        e.g.position.set(-HALF + 0.14, 0.73, -3.5);    // on the end fence post
+        const F = SC.fence;                            // on the end fence post
+        if (F.axis === 'z') e.g.position.set(F.at, 0.73, F.from); else e.g.position.set(F.from, 0.73, F.at);
         e.g.rotation.y = Math.PI / 4;
         e.blinkIn = 2;
       },
@@ -1325,8 +1578,9 @@
 
     fairyLights: {
       build(preview) {
-        const A = preview ? new THREE.Vector3(-1.4, 0, 0) : new THREE.Vector3(cellX(7) - 1.55, 1.95, cellZ(1) + 1.55);
-        const B = preview ? new THREE.Vector3(1.4, 0, 0) : new THREE.Vector3(cellX(1) + 0.15, 3.3, cellZ(1) + 0.2);
+        const T0 = SC.trees[0];
+        const A = preview ? new THREE.Vector3(-1.4, 0, 0) : home.eave.clone();
+        const B = preview ? new THREE.Vector3(1.4, 0, 0) : new THREE.Vector3(cellX(T0[0]) + 0.15, T0[2] - 0.7, cellZ(T0[1]) + 0.2);
         const swags = preview ? 2 : 1, sag = preview ? 0.55 : 0.7;
         const g = new THREE.Group();
         const pts = [];
@@ -1389,7 +1643,7 @@
         g.add(h);
         return { g, light, h, L0 };
       },
-      place(e) { e.g.position.set(cellX(5), 0, cellZ(4)); e.g.rotation.y = Math.PI / 4; },
+      place(e) { e.g.position.set(cellX(SC.spots.lamp[0]), 0, cellZ(SC.spots.lamp[1])); e.g.rotation.y = Math.PI / 4; },
       update(e, dt, t) {
         e.L0.rotation.z = Math.sin(t * 0.9) * 0.05;
         e.light.intensity = 0.25 + moodCur.glow * 1.8;
@@ -1418,7 +1672,7 @@
         return { g };
       },
       place(e) {
-        e.g.position.set(cellX(8), 0, cellZ(3));
+        e.g.position.set(cellX(SC.spots.gnome[0]), 0, cellZ(SC.spots.gnome[1]));
         e.g.rotation.y = Math.PI / 4;
         e.wobIn = rand(5, 10); e.wob = 0;
       },
@@ -1442,7 +1696,7 @@
         });
         return { g };
       },
-      place(e) { e.g.position.set(cellX(0), 0, cellZ(10)); },
+      place(e) { e.g.position.set(cellX(SC.spots.rocks[0]), 0, cellZ(SC.spots.rocks[1])); },
     },
 
     balloon: {
@@ -1789,12 +2043,13 @@
     });
 
     // chimney smoke
-    if (cabin) {
-      cabin.smokeIn -= dt;
-      if (cabin.smokeIn <= 0) {
-        cabin.smokeIn = 1.1;
+    sceneAnims.forEach(fn => fn(dt, t));
+    if (home && home.smokeAt) {
+      home.smokeIn -= dt;
+      if (home.smokeIn <= 0) {
+        home.smokeIn = 1.1;
         const m = new THREE.Mesh(geo(0.3, 0.3, 0.3), new THREE.MeshLambertMaterial({ color: 0xf0e6f4, transparent: true, opacity: 0 }));
-        m.position.copy(cabin.smokeAt);
+        m.position.copy(home.smokeAt);
         fxGroup.add(m);
         smoke.push({ m, life: 0 });
       }
@@ -1951,12 +2206,14 @@
     if (lb) {
       if (lb.pause > 0) lb.pause -= dt;
       else {
-        lb.g.position.z += lb.dir * lb.speed * dt;
+        lb.g.position[lb.axis] += lb.dir * lb.speed * dt;
         lb.t -= dt;
         if (lb.t <= 0) { lb.pause = rand(1, 4); lb.t = rand(2, 6); if (Math.random() < 0.4) lb.dir *= -1; }
-        if (Math.abs(lb.g.position.z) > 3.4) { lb.dir *= -1; lb.g.position.z = clamp(lb.g.position.z, -3.4, 3.4); }
+        const u = lb.g.position[lb.axis];
+        if (u > lb.hi || u < lb.lo) { lb.dir *= -1; lb.g.position[lb.axis] = clamp(u, lb.lo, lb.hi); }
       }
-      lb.g.rotation.y += ((lb.dir > 0 ? -Math.PI / 2 : Math.PI / 2) - lb.g.rotation.y) * (1 - Math.exp(-dt * 5));
+      const face = lb.axis === 'z' ? (lb.dir > 0 ? -Math.PI / 2 : Math.PI / 2) : (lb.dir > 0 ? 0 : Math.PI);
+      lb.g.rotation.y += (face - lb.g.rotation.y) * (1 - Math.exp(-dt * 5));
     }
     const fr = critters.frog;
     if (fr) {
@@ -1990,6 +2247,9 @@
     init, load, plantSeed, setGrowth, bloom, wilt, revive, remove, clearPlants,
     serialize, speciesLabel, setMarker, setMood, setRain, setFireflies, setCritters, setExtras, preview,
     spawnButterfly, onHover, capture, screenRect, freeCount: () => freeCells().length,
-    CAPACITY: BOX_W * BOX_D - RESERVED.size,
+    get CAPACITY() { return BOX_W * BOX_D - RESERVED.size; },
+    setScene, scene: () => sceneId,
+    SCENES: Object.keys(SCENES).map(id => ({ id, name: SCENES[id].name, tag: SCENES[id].tag,
+      swatch: [SCENES[id].grass[1], SCENES[id].blossom[0], SCENES[id].pond.water] })),
   };
 })();

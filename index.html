@@ -361,6 +361,21 @@
     display: grid; place-items: center;
     background: radial-gradient(circle at 50% 62%, rgba(255, 240, 250, .9), rgba(255, 255, 255, 0) 68%), linear-gradient(#b48aa8, #8a6688);
   }
+  .tour-art[hidden] { display: none; }
+  .tour-choices { display: flex; flex-direction: column; gap: 6px; margin: -4px 0 14px; text-align: left; }
+  .choice {
+    display: flex; align-items: center; gap: 10px; width: 100%; cursor: pointer;
+    border: 1.5px solid var(--line); background: var(--chip); border-radius: 14px; padding: 9px 11px;
+    transition: border-color .15s ease, background .15s ease, transform .1s ease;
+  }
+  .choice:hover { border-color: var(--ink-faint); }
+  .choice:active { transform: scale(.98); }
+  .choice.on { border-color: var(--leaf); background: transparent; box-shadow: 0 0 0 3px rgba(94, 154, 78, .15); }
+  .choice .sw { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; width: 34px; height: 34px; flex: none; border-radius: 9px; overflow: hidden; }
+  .choice .sw i:first-child { grid-row: span 2; }
+  .choice .ct { display: flex; flex-direction: column; line-height: 1.25; text-align: left; }
+  .choice b { font-family: var(--display); font-weight: 500; font-size: 15px; }
+  .choice small { font-size: 12px; color: var(--ink-dim); }
   .tour-art img { width: 100%; height: 100%; object-fit: contain; animation: artPop .55s cubic-bezier(.3, 1.6, .5, 1); }
   @keyframes artPop { from { opacity: 0; transform: scale(.6) rotate(-8deg); } }
   .tour-step { font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-faint); }
@@ -559,6 +574,7 @@
       <div class="tour-step" id="tourStep"></div>
       <h3 id="tourTitle"></h3>
       <p id="tourText"></p>
+      <div class="tour-choices" id="tourChoices" hidden></div>
       <form class="tour-form" id="tourForm" hidden>
         <input id="tourInput" maxlength="80" autocomplete="off" placeholder="e.g. Write the project brief" />
       </form>
