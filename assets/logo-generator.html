@@ -1,0 +1,187 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@700;800&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+</head><body style="margin:0;background:#fff">
+<script>
+// Renders the Pomodoro Terrarium mark: a voxel tomato with a sprout on a mini island.
+function renderMark(size) {
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+  renderer.setPixelRatio(1);
+  renderer.setSize(size, size);
+  renderer.setClearColor(0, 0);
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.2;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+  const scene = new THREE.Scene();
+  scene.add(new THREE.AmbientLight(0xe0c8e8, 1.05));
+  scene.add(new THREE.HemisphereLight(0xffe0f4, 0x4a3a70, 0.85));
+  const key = new THREE.DirectionalLight(0xfff0e0, 2.0);
+  key.position.set(6, 14, 3);
+  key.castShadow = true;
+  key.shadow.mapSize.set(2048, 2048);
+  Object.assign(key.shadow.camera, { left: -8, right: 8, top: 8, bottom: -8, near: 1, far: 40 });
+  key.shadow.bias = -0.0006; key.shadow.normalBias = 0.02;
+  scene.add(key);
+  const front = new THREE.DirectionalLight(0xf0dcff, 0.6); front.position.set(10, 6, 10); scene.add(front);
+
+  const mats = {};
+  const mat = (hex, glow) => mats[hex + (glow ? 'g' : '')] || (mats[hex + (glow ? 'g' : '')] =
+    new THREE.MeshLambertMaterial(glow ? { color: hex, emissive: hex, emissiveIntensity: 0.45 } : { color: hex }));
+  const box = (g, hex, w, h, d, x, y, z, ry, rz, rx, glow) => {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat(hex, glow));
+    m.position.set(x, y, z);
+    if (ry) m.rotation.y = ry; if (rz) m.rotation.z = rz; if (rx) m.rotation.x = rx;
+    m.castShadow = true; m.receiveShadow = true;
+    g.add(m);
+    return m;
+  };
+  let seed = 7;
+  const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+  const pick = a => a[(rnd() * a.length) | 0];
+
+  const world = new THREE.Group();
+  scene.add(world);
+
+  // --- mini island slab (same layers as the app) ---
+  const N = 7, H = N / 2;
+  const grass = [0x4a4a82, 0x4e4e8a, 0x46467c, 0x52528e], dirt = [0x7a5a44, 0x72543f, 0x7e5e48], deep = [0x5a4334, 0x54402f];
+  for (let x = 0; x < N; x++) for (let z = 0; z < N; z++) {
+    const X = -H + 0.5 + x, Z = -H + 0.5 + z;
+    const corner = (x === 0 || x === N - 1) && (z === 0 || z === N - 1);
+    const dip = corner ? -0.1 : 0;
+    box(world, pick(grass), 1, 0.4, 1, X, dip - 0.2, Z);
+    box(world, pick(dirt), 1, 1.0, 1, X, -0.9, Z);
+    box(world, pick(deep), 1, 0.8, 1, X, -1.8, Z);
+  }
+  // tufts, flowers and glowing mushrooms around the rim
+  [[-2.9, -1.6], [-2.6, 2.7], [2.8, -2.7], [1.2, 3.0], [-3.0, 0.9], [3.0, 1.4]].forEach(([x, z], i) => {
+    if (i % 3 === 0) { box(world, 0xe8e4f4, 0.1, 0.2, 0.1, x, 0.1, z); box(world, pick([0x6a8cff, 0x7fa0ff]), 0.32, 0.14, 0.32, x, 0.26, z, 0, 0, 0, true); }
+    else if (i % 3 === 1) { box(world, 0x4f7f5a, 0.07, 0.36, 0.07, x, 0.18, z); box(world, pick([0x9a6ae0, 0xb084f0, 0xc0a0ff]), 0.22, 0.22, 0.22, x, 0.42, z); }
+    else { for (let k = 0; k < 3; k++) box(world, 0x6a6aa8, 0.12, 0.3, 0.12, x + k * 0.16 - 0.16, 0.15, z + (k % 2) * 0.12); }
+  });
+  // --- the pomodoro: a round voxel tomato, turned to face the viewer ---
+  const tom = new THREE.Group();
+  const V = 0.4, R = 2.5, SQ = 0.86, RY = R * SQ;
+  tom.position.set(0.2, RY - 0.12, 0.2);
+  tom.rotation.y = Math.PI / 4;
+  world.add(tom);
+  const zmax = {};
+  const n = Math.ceil(R / V);
+  for (let i = -n; i <= n; i++) for (let j = -n; j <= n; j++) for (let k = -n; k <= n; k++) {
+    const x = i * V, y = j * V, z = k * V;
+    if ((x * x + z * z) / (R * R) + (y * y) / (RY * RY) > 1) continue;
+    const t = y / RY;
+    let hex = t > 0.6 ? 0xff7060 : t > 0.25 ? 0xf85a4c : t > -0.2 ? 0xec4a3f : t > -0.55 ? 0xdc4038 : 0xc63832;
+    if (rnd() < 0.12) hex = t > 0 ? 0xff6655 : 0xe24440;
+    box(tom, hex, V, V, V, x, y, z);
+    zmax[i + ',' + j] = Math.max(zmax[i + ',' + j] ?? -99, k);
+  }
+  const faceZ = (x, y) => zmax[Math.round(x / V) + ',' + Math.round(y / V)] * V + V / 2;
+  const onFace = (hex, w, h, x, y, lift) => box(tom, hex, w, h, 0.08, x, y, faceZ(x, y) + (lift || 0.03));
+  // shine
+  onFace(0xffd6cc, 0.5, 0.26, -1.45, 1.45);
+  onFace(0xffeae4, 0.2, 0.2, -1.0, 1.65);
+  // eyes + sparkle, blush, little w-mouth
+  [-0.82, 0.82].forEach(x => { onFace(0x2a1a24, 0.5, 0.66, x, 0.3, 0.05); onFace(0xffffff, 0.17, 0.17, x - 0.1, 0.48, 0.1); });
+  [-1.62, 1.62].forEach(x => onFace(0xff9ab0, 0.6, 0.3, x, -0.2));
+  [[-0.27, -0.18], [0, -0.18], [0.27, -0.18]].forEach(([x, y]) => onFace(0x2a1a24, 0.11, 0.15, x, y, 0.06));
+  [[-0.135, -0.28], [0.135, -0.28]].forEach(([x, y]) => onFace(0x2a1a24, 0.17, 0.1, x, y, 0.06));
+  // calyx star + stem + sprout
+  const topY = RY + 0.05;
+  for (let i = 0; i < 5; i++) {
+    const a = i * Math.PI * 2 / 5 + 0.3;
+    box(tom, i % 2 ? 0x4fae5a : 0x45a050, 1.4, 0.18, 0.42, Math.cos(a) * 0.5, topY, -Math.sin(a) * 0.5, a);
+  }
+  box(tom, 0x3f8a48, 0.3, 0.8, 0.3, 0, topY + 0.45, 0);
+  box(tom, 0x7cc66a, 0.95, 0.16, 0.44, 0.42, topY + 0.92, 0, 0, 0.5);
+  box(tom, 0x8dd57a, 0.95, 0.16, 0.44, -0.42, topY + 0.97, 0, 0, -0.5);
+  box(tom, 0x9be08a, 0.2, 0.2, 0.2, 0, topY + 0.95, 0);
+
+  // --- iso ortho camera fitted to the content ---
+  const dir = new THREE.Vector3(1, 0.86, 1).normalize();
+  const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 200);
+  cam.position.copy(dir).multiplyScalar(50);
+  cam.lookAt(0, 0, 0);
+  cam.updateMatrixWorld();
+  const bb = new THREE.Box3().setFromObject(world);
+  let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+  for (const x of [bb.min.x, bb.max.x]) for (const y of [bb.min.y, bb.max.y]) for (const z of [bb.min.z, bb.max.z]) {
+    const v = new THREE.Vector3(x, y, z).applyMatrix4(cam.matrixWorldInverse);
+    x0 = Math.min(x0, v.x); x1 = Math.max(x1, v.x); y0 = Math.min(y0, v.y); y1 = Math.max(y1, v.y);
+  }
+  const half = Math.max(x1 - x0, y1 - y0) / 2 * 1.04, cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+  Object.assign(cam, { left: cx - half, right: cx + half, top: cy + half, bottom: cy - half });
+  cam.updateProjectionMatrix();
+  renderer.render(scene, cam);
+  return renderer.domElement;
+}
+
+function roundRect(g, x, y, w, h, r) {
+  g.beginPath();
+  g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r);
+  g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath();
+}
+function sparkle(g, x, y, s, a) {
+  g.save(); g.globalAlpha = a; g.fillStyle = '#fff6fb';
+  g.fillRect(x - s / 2, y - s * 1.5, s, s * 3); g.fillRect(x - s * 1.5, y - s / 2, s * 3, s);
+  g.restore();
+}
+
+async function build() {
+  await document.fonts.load('600 160px Fredoka');
+  await document.fonts.load('800 40px Nunito');
+  const mark = renderMark(1024);
+  const out = {};
+
+  // 1) transparent mark
+  out.mark = mark.toDataURL('image/png');
+
+  // 2) app-icon tile
+  const S = 1024, c = document.createElement('canvas'); c.width = c.height = S;
+  const g = c.getContext('2d');
+  roundRect(g, 0, 0, S, S, 230); g.save(); g.clip();
+  const bg = g.createLinearGradient(0, 0, 0, S);
+  bg.addColorStop(0, '#6a4b6c'); bg.addColorStop(0.5, '#87647f'); bg.addColorStop(1, '#b08aa0');
+  g.fillStyle = bg; g.fillRect(0, 0, S, S);
+  const glow = g.createRadialGradient(S / 2, S * 0.56, 0, S / 2, S * 0.56, S * 0.5);
+  glow.addColorStop(0, 'rgba(255,225,245,.55)'); glow.addColorStop(1, 'rgba(255,225,245,0)');
+  g.fillStyle = glow; g.fillRect(0, 0, S, S);
+  [[150, 170, 10, .9], [860, 210, 8, .75], [800, 120, 5, .6], [210, 300, 5, .5], [880, 400, 6, .55]].forEach(a => sparkle(g, ...a));
+  g.drawImage(mark, S * 0.08, S * 0.09, S * 0.84, S * 0.84);
+  g.restore();
+  out.icon = c.toDataURL('image/png');
+
+  // 3) favicon sizes from the tile
+  for (const n of [32, 180]) {
+    const f = document.createElement('canvas'); f.width = f.height = n;
+    const fg = f.getContext('2d'); fg.imageSmoothingQuality = 'high';
+    fg.drawImage(c, 0, 0, n, n);
+    out['icon' + n] = f.toDataURL('image/png');
+  }
+
+  // 4) horizontal lockup: mark + wordmark, transparent
+  const measure = document.createElement('canvas').getContext('2d');
+  measure.font = '600 172px Fredoka';
+  const textW = Math.max(measure.measureText('Pomodoro').width, measure.measureText('Terrarium').width);
+  const LW = Math.ceil(650 + textW + 40), LH = 640, l = document.createElement('canvas'); l.width = LW; l.height = LH;
+  const lg = l.getContext('2d');
+  lg.drawImage(mark, 10, 10, 620, 620);
+  lg.textBaseline = 'alphabetic';
+  lg.font = '600 172px Fredoka';
+  lg.fillStyle = '#4a2c4c';
+  lg.fillText('Pomodoro', 650, 300);
+  lg.fillStyle = '#b8478f';
+  lg.fillText('Terrarium', 650, 470);
+  lg.font = '800 44px Nunito';
+  lg.fillStyle = '#8a6688';
+  lg.fillText('grow a garden while you focus', 658, 560);
+  out.lockup = l.toDataURL('image/png');
+  return out;
+}
+window.__build = build;
+</script>
+</body></html>

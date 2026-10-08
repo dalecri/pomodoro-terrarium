@@ -4,6 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Pomodoro Terrarium</title>
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -106,7 +108,7 @@
     font-family: var(--display); font-weight: 500; font-size: 17px; letter-spacing: 0.01em;
     color: #fff4fa; text-shadow: 0 1px 12px rgba(40, 20, 50, .25);
   }
-  .masthead .sprout { width: 22px; height: 22px; }
+  .masthead .sprout { width: 30px; height: 30px; filter: drop-shadow(0 2px 6px rgba(40, 20, 50, .3)); }
   .masthead .day-note { font-family: var(--font); font-size: 12px; font-weight: 700; color: rgba(255, 244, 250, .6); margin-left: 4px; }
   .mobile-tabs { display: none; }
 
@@ -442,7 +444,7 @@
   <div class="grain"></div>
 
   <div class="masthead">
-    <svg class="sprout" viewBox="0 0 24 24"><rect x="11" y="10" width="2.4" height="11" rx="1" fill="#5e9a4e"/><rect x="4" y="7" width="8" height="4.4" rx="2" fill="#7cc06a"/><rect x="12" y="4" width="8" height="4.4" rx="2" fill="#5fae5a"/><rect x="6" y="19" width="12" height="3" rx="1.5" fill="#8a5a36"/></svg>
+    <img class="sprout" src="assets/logo-mark.png" alt="" width="30" height="30">
     Pomodoro Terrarium
     <span class="day-note" id="dayNote"></span>
   </div>

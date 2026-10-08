@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/logo.png" alt="Pomodoro Terrarium" width="560"></p>
+
 # Pomodoro Terrarium
 
 A cozy pomodoro timer where an isometric voxel garden island grows while you work. The island has a dusky-mauve sky, indigo grass, a little cabin with chimney smoke, a lily pond and old blossom trees. Reimagined from
@@ -30,3 +32,5 @@ Then open http://localhost:5179. Add `?speed=60` to make a minute pass every sec
 First-time visitors get a short 5-step walkthrough (replay it from settings: "Show the intro again").
 
 Keys: <kbd>Space</kbd> start/pause · <kbd>N</kbd> new task · <kbd>Esc</kbd> close panels (mobile).
+
+The logo files in `assets/` are rendered by `assets/logo-generator.html`, using the same voxel style as the app.
