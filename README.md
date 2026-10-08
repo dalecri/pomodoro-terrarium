@@ -27,4 +27,6 @@ python -m http.server 5179
 
 Then open http://localhost:5179. Add `?speed=60` to make a minute pass every second for demos.
 
+First-time visitors get a short 5-step walkthrough (replay it from settings: "Show the intro again").
+
 Keys: <kbd>Space</kbd> start/pause · <kbd>N</kbd> new task · <kbd>Esc</kbd> close panels (mobile).

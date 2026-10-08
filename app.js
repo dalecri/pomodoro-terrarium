@@ -534,7 +534,7 @@
     setMode(b.dataset.mode);
   });
   document.addEventListener('keydown', e => {
-    if (e.target.closest('input, textarea')) return;
+    if (!$('tour').hidden || e.target.closest('input, textarea')) return;
     if (e.code === 'Space') { e.preventDefault(); $('mainBtn').click(); }
     if (e.key === 'n' || e.key === 'N') { e.preventDefault(); openSheet('tasks'); $('taskInput').focus(); }
     if (e.key === 'Escape') { if (!$('shop').hidden) closeShop(); else openSheet(null); }
@@ -694,6 +694,140 @@
     renderShop();
   });
 
+  // =====================================================
+  // First-run walkthrough
+  // =====================================================
+  const narrow = () => window.innerWidth <= 980;
+  const visible = el => el && el.offsetParent !== null;
+  const TOUR = [
+    {
+      art: { plant: 'tree' }, title: 'Welcome to your little island',
+      text: 'This garden grows while you focus, rests while you rest, and remembers everything you worked on.',
+      target: () => Terrarium.screenRect(), pad: 4,
+    },
+    {
+      art: { plant: 'tulip' }, title: 'Plant a task',
+      text: 'List what you’re working on and tap one to tend it. Finishing a task grows something small and earns 2 coins.',
+      target: () => narrow() ? $('mTasks') : $('tasksPanel'),
+    },
+    {
+      art: { plant: 'sunflower' }, title: 'Focus to grow',
+      text: 'Press <b>Plant &amp; focus</b>. A mystery seed sprouts while the timer runs and blooms at the end. Stop early and it wilts, but a finished task will revive it.',
+      target: () => $('timer'),
+    },
+    {
+      art: { extra: 'cat' }, title: 'Rest, collect, decorate',
+      text: 'Breaks bring rain and starry nights. Critters move in as you go, and coins buy flowers, critters and cozy accents in the shop. Here are 5 to start.',
+      target: () => [...document.querySelectorAll('.coin-pill[data-shop]')].find(visible),
+    },
+    {
+      art: { extra: 'bunny' }, title: 'What will you tend first?',
+      text: 'Name one thing for today. We’ll plant it in your task list.',
+      form: true,
+    },
+  ];
+  const tourArt = {};
+  let tourAt = 0;
+
+  function startTour() {
+    openSheet(null);
+    closeShop();
+    tourAt = 0;
+    $('tour').hidden = false;
+    $('tourDots').innerHTML = TOUR.map(() => '<i></i>').join('');
+    showStep();
+  }
+  function endTour(firstTask) {
+    $('tour').hidden = true;
+    if (!S.seenWelcome) { S.seenWelcome = true; save(); }
+    if (firstTask) {
+      const t = { id: Date.now(), text: firstTask, done: false, pomos: 0, planted: false };
+      S.tasks.push(t);
+      S.activeTaskId = t.id;
+      save(); renderTasks(); renderTimer();
+      Sound.unlock(); Sound.pop();
+      toast(`“${esc(firstTask)}” is planted. Press <b>Plant &amp; focus</b> whenever you’re ready 🌱`, 6000);
+    }
+  }
+
+  function showStep() {
+    const step = TOUR[tourAt], last = tourAt === TOUR.length - 1;
+    $('tourStep').textContent = `${tourAt + 1} of ${TOUR.length}`;
+    $('tourTitle').textContent = step.title;
+    $('tourText').innerHTML = step.text;
+    $('tourForm').hidden = !step.form;
+    $('tourNext').textContent = last ? 'Plant it 🌱' : tourAt === 0 ? 'Show me' : 'Next';
+    $('tourSkip').textContent = last ? 'Maybe later' : 'Skip';
+    $('tourDots').querySelectorAll('i').forEach((d, i) => d.classList.toggle('on', i === tourAt));
+    const key = JSON.stringify(step.art);
+    if (!tourArt[key]) { try { tourArt[key] = Terrarium.preview(step.art); } catch (e) { tourArt[key] = ''; } }
+    $('tourArt').innerHTML = tourArt[key] ? `<img src="${tourArt[key]}" alt="">` : '';
+    placeTour();
+    if (step.form) setTimeout(() => $('tourInput').focus(), 350);
+    else $('tourNext').focus({ preventScroll: true });
+  }
+
+  // spotlight the target and tuck the card beside it wherever it fits
+  function placeTour() {
+    if ($('tour').hidden) return;
+    const step = TOUR[tourAt], spot = $('tourSpot'), card = $('tourCard');
+    const W = window.innerWidth, H = window.innerHeight, m = 16;
+    let r = null;
+    if (step.target) {
+      const t = step.target();
+      r = t && t.getBoundingClientRect ? t.getBoundingClientRect() : t;
+    }
+    if (r) {
+      const pad = step.pad != null ? step.pad : 8;
+      Object.assign(spot.style, { left: r.left - pad + 'px', top: r.top - pad + 'px', width: r.width + pad * 2 + 'px', height: r.height + pad * 2 + 'px' });
+      spot.classList.add('ring');
+    } else {
+      Object.assign(spot.style, { left: W / 2 + 'px', top: H / 2 + 'px', width: '0px', height: '0px' });
+      spot.classList.remove('ring');
+    }
+    const cw = card.offsetWidth, ch = card.offsetHeight;
+    let x = (W - cw) / 2, y = (H - ch) / 2;
+    if (r && narrow()) {
+      // phones: card hugs the bottom, or the top if the target lives down there
+      y = r.top + r.height / 2 > H * 0.55 ? m : H - ch - m;
+      if (y === m && r.top < ch + m * 2) y = Math.min(H - ch - m, r.bottom + m);
+    } else if (r) {
+      const fits = (cx, cy) => cx >= m && cx + cw <= W - m && cy >= m && cy + ch <= H - m;
+      const midY = Math.min(Math.max(r.top + r.height / 2 - ch / 2, m), H - ch - m);
+      const midX = Math.min(Math.max(r.left + r.width / 2 - cw / 2, m), W - cw - m);
+      const options = [
+        [r.right + 24, midY], [r.left - 24 - cw, midY],
+        [midX, r.top - 24 - ch], [midX, r.bottom + 24],
+      ];
+      const hit = options.find(([cx, cy]) => fits(cx, cy));
+      if (hit) [x, y] = hit;
+    }
+    card.style.left = Math.round(x) + 'px';
+    card.style.top = Math.round(y) + 'px';
+  }
+
+  function tourNext() {
+    if (tourAt < TOUR.length - 1) { tourAt++; showStep(); Sound.unlock(); Sound.soft(); return; }
+    const text = $('tourInput').value.trim();
+    if (!text) {      // empty: a gentle wiggle instead of silently closing ("Maybe later" skips)
+      const inp = $('tourInput');
+      inp.classList.remove('nudge'); void inp.offsetWidth; inp.classList.add('nudge');
+      inp.focus();
+      return;
+    }
+    endTour(text);
+  }
+  $('tourNext').addEventListener('click', tourNext);
+  $('tourSkip').addEventListener('click', () => endTour(''));
+  $('tourForm').addEventListener('submit', e => { e.preventDefault(); tourNext(); });
+  $('tour').addEventListener('keydown', e => {
+    if (e.key === 'Escape') { e.preventDefault(); endTour(''); }
+    if (e.key === 'ArrowRight' && !e.target.closest('input')) tourNext();
+    if (e.key === 'ArrowLeft' && !e.target.closest('input') && tourAt > 0) { tourAt--; showStep(); }
+  });
+  window.addEventListener('resize', placeTour);
+  $('replayTour').addEventListener('click', () => { $('settings').classList.remove('open'); startTour(); });
+
   // ---------- boot ----------
   function renderAll() { render(); renderTasks(); renderStats(); renderJournal(); renderShelf(); renderSettings(); }
 
@@ -706,15 +840,11 @@
   renderCoins();
   if (T.status === 'running' && T.endAt <= Date.now()) setTimeout(complete, 1200);   // bloom it after the garden wakes up
 
-  if (!S.seenWelcome) {
-    S.seenWelcome = true; save();
-    setTimeout(() => toast('Welcome! Add a task, then plant a seed and focus. Your garden grows as you work 🌱', 6500), 900);
-    setTimeout(() => toast('Here are 5 coins for the garden shop. Finished tasks earn more 🪙', 6000), 2600);
-  }
+  if (!S.seenWelcome) setTimeout(startTour, 1100);    // let the garden wake up first
   if (SPEED > 1) setTimeout(() => toast(`Demo speed ×${SPEED}: a minute passes every ${(60 / SPEED).toFixed(1)}s`, 4000), 300);
 
   setInterval(tick, 200);
   document.addEventListener('pointerdown', () => Sound.unlock(), { once: true });
 
-  window.__terrarium = { state: () => S, complete, unlock, earn };
+  window.__terrarium = { state: () => S, complete, unlock, earn, startTour };
 })();

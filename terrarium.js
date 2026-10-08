@@ -1709,6 +1709,19 @@
     });
   }
 
+  // island bounds in client pixels (for the onboarding spotlight)
+  function screenRect() {
+    const rect = renderer.domElement.getBoundingClientRect();
+    let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+    [-1, 1].forEach(sx => [-1, 1].forEach(sz => [-2.7, 5.4].forEach(y => {
+      const v = new THREE.Vector3(sx * HALF, y, sz * HALF);
+      terrariumGroup.localToWorld(v); v.project(camera);
+      const px = rect.left + (v.x + 1) / 2 * rect.width, py = rect.top + (1 - v.y) / 2 * rect.height;
+      x0 = Math.min(x0, px); x1 = Math.max(x1, px); y0 = Math.min(y0, py); y1 = Math.max(y1, py);
+    })));
+    return { left: x0, top: y0, right: x1, bottom: y1, width: x1 - x0, height: y1 - y0 };
+  }
+
   // =========================================================
   // Snapshot for the garden album
   // =========================================================
@@ -1976,7 +1989,7 @@
   window.Terrarium = {
     init, load, plantSeed, setGrowth, bloom, wilt, revive, remove, clearPlants,
     serialize, speciesLabel, setMarker, setMood, setRain, setFireflies, setCritters, setExtras, preview,
-    spawnButterfly, onHover, capture, freeCount: () => freeCells().length,
+    spawnButterfly, onHover, capture, screenRect, freeCount: () => freeCells().length,
     CAPACITY: BOX_W * BOX_D - RESERVED.size,
   };
 })();
