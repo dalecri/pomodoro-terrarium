@@ -6,7 +6,7 @@ A cozy pomodoro timer where an isometric voxel garden island grows while you wor
 - **Focus**: a mystery seed sprouts and grows a block at a time as the timer runs, then blooms when it finishes.
 - **Stop early**: the sprout wilts. If you stop in the first minute, the seed just goes back in your pocket.
 - **Finish a task**: it revives a wilted sprout, or pops up something small like a mushroom, moss or a tulip.
-- **Short break**: dusk, with a rain cloud watering the jar. **Long break**: night, with stars, fireflies and crickets.
+- **Short break**: dusk, with a rain cloud watering the island. **Long break**: night, with stars, fireflies and crickets.
 - **Every 4th pomodoro** grows a cherry blossom tree.
 - **Critter journal**: butterflies, a snail, a ladybug, fireflies, a frog. Each has its own milestone.
 - **Hover any plant** to see which task it grew during. Drag to turn the island; double-click to reset.
