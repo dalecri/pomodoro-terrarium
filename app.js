@@ -19,17 +19,17 @@
     seenWelcome: false,
     coins: null,       // null → first run with coins: seeded from past progress
     owned: {},         // shop critters/accents bought
-    placed: {},        // ...and currently shown in the jar
+    placed: {},        // ...and currently shown on the island
     bought: {},        // shop flower purchase counts
   };
 
   const CRITTERS = [
     { k: 'butterfly', icon: '🦋', name: 'Butterflies', hint: 'Bloom your first focus plant.', toast: 'A butterfly found your first bloom! 🦋' },
-    { k: 'snail', icon: '🐌', name: 'Snail', hint: 'Bloom 3 focus plants.', toast: 'A snail moved onto the ledge. Slow and steady 🐌' },
-    { k: 'ladybug', icon: '🐞', name: 'Ladybug', hint: 'Finish 5 tasks.', toast: 'A ladybug is patrolling the lid 🐞' },
+    { k: 'snail', icon: '🐌', name: 'Snail', hint: 'Bloom 3 focus plants.', toast: 'A snail is exploring the garden rim. Slow and steady 🐌' },
+    { k: 'ladybug', icon: '🐞', name: 'Ladybug', hint: 'Finish 5 tasks.', toast: 'A ladybug is patrolling the fence 🐞' },
     { k: 'firefly', icon: '✨', name: 'Fireflies', hint: 'Take a long break.', toast: 'Fireflies came out for your long break ✨' },
     { k: 'tree', icon: '🌸', name: 'Cherry tree', hint: 'Finish a full set of 4 pomodoros.', toast: 'A cherry blossom tree! Every 4th pomodoro grows one 🌸' },
-    { k: 'frog', icon: '🐸', name: 'Frog', hint: 'Bloom 10 focus plants.', toast: 'A frog hopped in to keep you company 🐸' },
+    { k: 'frog', icon: '🐸', name: 'Frog', hint: 'Bloom 10 focus plants.', toast: 'A frog moved onto the lily pads 🐸' },
   ];
 
   const COINS = { task: 2, bloom: 3 };
@@ -43,14 +43,14 @@
     { id: 'bonsai', cat: 'flowers', kind: 'bonsai', price: 20, name: 'Bonsai pine', desc: 'Patiently pruned cloud pads.' },
     { id: 'rainbow', cat: 'flowers', kind: 'rainbow', price: 25, name: 'Rainbow tulip', desc: 'Every petal a different color.' },
     { id: 'bee', cat: 'fauna', price: 15, name: 'Bumblebee', desc: 'Visits your blooms by day, naps at night.', toast: 'A bumblebee is buzzing between your blooms 🐝' },
-    { id: 'bunny', cat: 'fauna', price: 25, name: 'Bunny', desc: 'Sits on the ledge, twitches its nose, flops an ear.', toast: 'A bunny hopped onto the ledge 🐰' },
-    { id: 'owl', cat: 'fauna', price: 30, name: 'Night owl', desc: 'Dozes on the corner by day, wide awake at dusk.', toast: 'An owl perched on the corner 🦉' },
-    { id: 'cat', cat: 'fauna', price: 45, name: 'Sleepy cat', desc: 'Curls up on the warm glass lid. Zzz.', toast: 'A cat curled up on the lid. Shh 🐈' },
-    { id: 'mossyFrame', cat: 'accents', price: 10, name: 'Mossy frame', desc: 'Moss creeping up the brass, with tiny flowers.', toast: 'Moss crept up the frame 🌿' },
-    { id: 'lantern', cat: 'accents', price: 15, name: 'Hanging lantern', desc: 'A warm glow inside the jar, cozier at night.', toast: 'A lantern is glowing in the jar 🏮' },
-    { id: 'gnome', cat: 'accents', price: 18, name: 'Garden gnome', desc: 'Guards the ledge. Wobbles when nobody looks.', toast: 'A gnome is guarding your garden' },
-    { id: 'fairyLights', cat: 'accents', price: 22, name: 'Fairy lights', desc: 'Twinkly string lights along the lid.', toast: 'Fairy lights strung up ✨' },
-    { id: 'goldenFrame', cat: 'accents', price: 35, name: 'Golden frame', desc: 'Polish the brass into shiny gold.', toast: 'Your jar is gilded now 👑' },
+    { id: 'bunny', cat: 'fauna', price: 25, name: 'Bunny', desc: 'Sits in the front corner, twitches its nose, flops an ear.', toast: 'A bunny hopped into the corner 🐰' },
+    { id: 'owl', cat: 'fauna', price: 30, name: 'Night owl', desc: 'Dozes on a fence post by day, wide awake at dusk.', toast: 'An owl perched on the corner 🦉' },
+    { id: 'cat', cat: 'fauna', price: 45, name: 'Sleepy cat', desc: 'Naps on the cabin roof by the chimney. Zzz.', toast: 'A cat is napping on the cabin roof. Shh 🐈' },
+    { id: 'mossyRocks', cat: 'accents', price: 10, name: 'Mossy boulders', desc: 'Soft, moss-capped stones with tiny flowers.', toast: 'Mossy boulders settled into the corner 🌿' },
+    { id: 'lantern', cat: 'accents', price: 15, name: 'Lamp post', desc: 'A little lantern by the path, cozier at night.', toast: 'A lamp post is glowing by the path 🏮' },
+    { id: 'gnome', cat: 'accents', price: 18, name: 'Garden gnome', desc: 'Guards the cabin door. Wobbles when nobody looks.', toast: 'A gnome is guarding your garden' },
+    { id: 'fairyLights', cat: 'accents', price: 22, name: 'Fairy lights', desc: 'Twinkly lights from the cabin to the old tree.', toast: 'Fairy lights strung up ✨' },
+    { id: 'balloon', cat: 'accents', price: 35, name: 'Hot-air balloon', desc: 'Drifts in slow circles above your island.', toast: 'A hot-air balloon is drifting overhead 🎈' },
   ];
   const COIN_SVG = document.querySelector('.coin').outerHTML;
 
@@ -66,6 +66,10 @@
   }
   let S = load();
   if (S.coins == null) S.coins = 5 + COINS.task * S.stats.tasks + COINS.bloom * S.stats.total;
+  // the jar-only accents became island accents
+  [['mossyFrame', 'mossyRocks'], ['goldenFrame', 'balloon']].forEach(([a, b]) => {
+    if (S.owned[a]) { S.owned[b] = true; S.placed[b] = S.placed[a]; delete S.owned[a]; delete S.placed[a]; }
+  });
   let saveTimer = null;
   function save(now) {
     clearTimeout(saveTimer);
@@ -139,7 +143,7 @@
 
   function plantFocusSeed() {
     if (Terrarium.freeCount() === 0) {
-      toast('This jar is full! Shelve it in the garden panel to start a fresh one.', 5000);
+      toast('Your garden is full! Save it to the album in the garden panel to start fresh.', 5000);
       return;
     }
     const isTree = S.cycle % S.settings.longEvery === S.settings.longEvery - 1;
@@ -293,7 +297,7 @@
     let c;
     if (T.mode === 'focus') {
       if (T.status === 'idle') {
-        if (Terrarium.freeCount() === 0) c = 'Your jar is full. Shelve it to keep growing.';
+        if (Terrarium.freeCount() === 0) c = 'Your garden is full. Save it to the album to keep growing.';
         else if (S.cycle % S.settings.longEvery === S.settings.longEvery - 1) c = task ? `Something special is waiting to sprout${taskBit}…` : 'Something special is waiting to sprout…';
         else c = task ? `Next seed${taskBit}` : 'Pick a task, or just plant a seed and focus.';
       } else if (T.growingId == null) c = `Focusing${taskBit}`;
@@ -430,7 +434,7 @@
   $('journal').addEventListener('mouseover', e => {
     const el = e.target.closest('.critter'); if (!el) return;
     const c = CRITTERS.find(x => x.k === el.dataset.k);
-    $('journalNote').innerHTML = S.unlocked[c.k] ? `<b>${c.name}</b> live in your jar.` : `<b>???</b> ${c.hint}`;
+    $('journalNote').innerHTML = S.unlocked[c.k] ? `<b>${c.name}</b> live on your island.` : `<b>???</b> ${c.hint}`;
   });
   $('journal').addEventListener('mouseleave', () => { $('journalNote').textContent = 'Hover a critter to see how to meet it.'; });
 
@@ -455,30 +459,30 @@
 
   function renderShelf() {
     $('shelf').innerHTML = S.shelf.length
-      ? S.shelf.map(j => `<div class="jar-thumb" title="${j.plants} plants · ${fmtDate(j.date)}"><img src="${j.img}" alt="Shelved jar"><span>${fmtDate(j.date)}</span></div>`).join('')
-      : '<div class="shelf-empty">When a jar fills up, put it on the shelf and start a new one. Your old gardens live here.</div>';
+      ? S.shelf.map(j => `<div class="jar-thumb" title="${j.plants} plants · ${fmtDate(j.date)}"><img src="${j.img}" alt="Saved garden"><span>${fmtDate(j.date)}</span></div>`).join('')
+      : '<div class="shelf-empty">When your island fills up, save a snapshot here and start fresh. Your old gardens live here.</div>';
   }
 
   let shelveArmed = 0;
   $('newJar').addEventListener('click', () => {
     if (T.mode === 'focus' && T.status !== 'idle') { toast('Finish or stop this focus first. Your sprout is still growing!'); return; }
-    if (!S.garden.length) { toast('This jar is still empty. Grow something first 🌱'); return; }
+    if (!S.garden.length) { toast('Your garden is still empty. Grow something first 🌱'); return; }
     if (Date.now() - shelveArmed > 3000) {
       shelveArmed = Date.now();
-      $('newJar').textContent = 'Tap again to shelve it';
-      setTimeout(() => { $('newJar').innerHTML = 'Shelve this jar &amp; start fresh'; }, 3000);
+      $('newJar').textContent = 'Tap again to save & clear';
+      setTimeout(() => { $('newJar').innerHTML = 'Save to album &amp; start fresh'; }, 3000);
       return;
     }
     shelveArmed = 0;
-    $('newJar').innerHTML = 'Shelve this jar &amp; start fresh';
-    const bg = { day: '#e3ead6', dusk: '#e9b4ac', night: '#1c2350' }[document.body.dataset.mood];
+    $('newJar').innerHTML = 'Save to album &amp; start fresh';
+    const bg = { day: '#8a6688', dusk: '#6e78a6', night: '#1d1f48' }[document.body.dataset.mood];
     S.shelf.unshift({ img: Terrarium.capture(bg), date: Date.now(), plants: S.garden.length });
     S.shelf = S.shelf.slice(0, 12);
     Terrarium.clearPlants();
     syncGarden();
     save(true);
     Sound.pop();
-    toast('Jar shelved. Fresh soil, fresh start 🪴');
+    toast('Saved to your album. Fresh soil, fresh start 🪴');
     renderShelf(); renderStats();
   });
 
@@ -609,7 +613,7 @@
     document.querySelectorAll('#shopTabs button').forEach(b => b.classList.toggle('on', b.dataset.cat === shopCat));
     const full = Terrarium.freeCount() === 0;
     $('shopNote').textContent = shopCat === 'flowers'
-      ? (full ? 'Your jar is full. Shelve it to plant more.' : 'Flowers are planted in your jar right away. Buy as many as you like.')
+      ? (full ? 'Your garden is full. Save it to the album to plant more.' : 'Flowers are planted on your island right away. Buy as many as you like.')
       : shopCat === 'fauna' ? 'Critters move in for good. Tap “Placed” to send one on vacation.'
       : 'Accents are yours to keep. Tap “Placed” to put one away.';
     const items = SHOP.filter(it => it.cat === shopCat);
@@ -657,7 +661,7 @@
     if (S.coins < it.price) return;
     if (it.cat === 'flowers') {
       const p = Terrarium.plantSeed(it.kind, { from: 'shop', date: Date.now() }, { instant: true });
-      if (!p) { toast('No room left in this jar. Shelve it to plant more.'); return; }
+      if (!p) { toast('No room left. Save this garden to the album to plant more.'); return; }
       S.bought[id] = (S.bought[id] || 0) + 1;
       syncGarden();
       toast(`A ${esc(it.name.toLowerCase())} was planted 🌱`);
