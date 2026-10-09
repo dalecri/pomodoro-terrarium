@@ -26,43 +26,43 @@
   // ---- Island presets: layout, home, trees, accents and a resident pond critter ----
   const SCENES = {
     hollow: {
-      name: 'Blossom Hollow', tag: 'Wood cabin, magenta blossoms, olive pond',
+      name: 'Blossom Hollow', tag: 'Wood cabin, olive pond, purple wildflowers',
       grass: [0x4a4a82, 0x4e4e8a, 0x46467c, 0x52528e, 0x4a4a86], tuft: [0x60609c, 0x5a5a98, 0x6a6aa8],
       blossom: [0xc24a9c, 0xd462b0, 0xa83c8a, 0xe27cc4, 0xb84898], trunk: 0x9a7a58,
       glow: [0x6a8cff, 0x7fa0ff, 0x5a7aee], flowers: [0x9a6ae0, 0xb084f0, 0x8a5ad0, 0xc0a0ff],
       pond: { x0: 3, z0: 5, water: 0x8c9a48, opacity: 0.88, bed: 0x3e4a2c, reeds: [0xb04a8a, 0xc060a0, 0x9a3a7a], swimmer: null },
       home: { type: 'cabin', x: 7, z: 1 },
-      trees: [[1, 1, 4, 1234], [1, 9, 4, 777]],
+      trees: [],                      // islands start fresh; trees are earned
       fence: { axis: 'z', at: -HALF + 0.14, from: -3.5, to: 3.5 },
       props: [['barrel', 9, 0], ['crate', 10, 1]],
       path: [[7, 3], [6, 4]],
-      spots: { gnome: [8, 3], lamp: [5, 4], bunny: [10, 10], rocks: [0, 10] },
+      spots: { gnome: [8, 3], lamp: [5, 4], bunny: [10, 10], rocks: [0, 10], lights: [3, 2] },
     },
     mill: {
-      name: 'Amber Mill', tag: 'Stone windmill, autumn maples, ducklings',
+      name: 'Amber Mill', tag: 'Stone windmill, teal pond, ducklings',
       grass: [0x485080, 0x4c5488, 0x444c7a, 0x50588c, 0x485084], tuft: [0x5e6a9c, 0x58649a, 0x6874a8],
       blossom: [0xe8853a, 0xf0a04a, 0xd06a2a, 0xf5c062, 0xe07a34], trunk: 0x8a6a4a,
       glow: [0xffb04a, 0xffc66a, 0xf09a3a], flowers: [0xffd04a, 0xffe07a, 0xf0b030, 0xffffff],
       pond: { x0: 6, z0: 6, water: 0x5aa8a0, opacity: 0.85, bed: 0x2e4a4a, reeds: [0xc89a4a, 0xa87a3a, 0xd8b060], swimmer: 'ducks' },
       home: { type: 'windmill', x: 2, z: 2 },
-      trees: [[9, 1, 4, 4321], [2, 8, 3, 99]],
+      trees: [],                      // islands start fresh; trees are earned
       fence: { axis: 'x', at: -HALF + 0.14, from: -1.5, to: 4.5 },
       props: [['hay', 5, 1], ['pumpkins', 0, 4]],
       path: [[2, 4], [3, 5]],
-      spots: { gnome: [1, 4], lamp: [4, 5], bunny: [10, 10], rocks: [10, 3] },
+      spots: { gnome: [1, 4], lamp: [4, 5], bunny: [10, 10], rocks: [10, 3], lights: [5, 4] },
     },
     grove: {
-      name: 'Moonlit Greenhouse', tag: 'Glass greenhouse, frost blossoms, koi',
+      name: 'Moonlit Greenhouse', tag: 'Glass greenhouse, lilac pond, koi',
       grass: [0x544a88, 0x584e90, 0x504684, 0x5c5294, 0x544c8c], tuft: [0x6a609e, 0x645aa0, 0x7468ae],
       blossom: [0x9fb4ff, 0xb8c6ff, 0xdfe5ff, 0x8aa0f0, 0xc8d2ff], trunk: 0xa89a8a,
       glow: [0xff7ac8, 0xff9ad8, 0xf06ab8], flowers: [0xffffff, 0xe0e6ff, 0xb8c6ff, 0xf0d8ff],
       pond: { x0: 1, z0: 4, water: 0x9a8ac8, opacity: 0.5, bed: 0x2a2450, reeds: [0x8a9ad0, 0xa0b0e0, 0x7a8ac0], swimmer: 'koi' },
       home: { type: 'greenhouse', x: 5, z: 1 },
-      trees: [[9, 2, 4, 2468], [10, 7, 3, 1357]],
+      trees: [],                      // islands start fresh; trees are earned
       fence: { axis: 'z', at: -HALF + 0.14, from: -5.0, to: -1.5 },
       props: [['well', 8, 1], ['bench', 4, 7]],
       path: [[5, 3], [4, 4]],
-      spots: { gnome: [6, 3], lamp: [3, 3], bunny: [10, 10], rocks: [10, 6] },
+      spots: { gnome: [6, 3], lamp: [3, 3], bunny: [10, 10], rocks: [10, 6], lights: [1, 2] },
     },
   };
   let sceneId = 'hollow', SC = SCENES.hollow;
@@ -1677,11 +1677,15 @@
 
     fairyLights: {
       build(preview) {
-        const T0 = SC.trees[0];
+        const [lx, lz] = SC.spots.lights;
         const A = preview ? new THREE.Vector3(-1.4, 0, 0) : home.eave.clone();
-        const B = preview ? new THREE.Vector3(1.4, 0, 0) : new THREE.Vector3(cellX(T0[0]) + 0.15, T0[2] - 0.7, cellZ(T0[1]) + 0.2);
-        const swags = preview ? 2 : 1, sag = preview ? 0.55 : 0.7;
+        const B = preview ? new THREE.Vector3(1.4, 0, 0) : new THREE.Vector3(cellX(lx), 1.72, cellZ(lz));
+        const swags = preview ? 2 : 1, sag = preview ? 0.55 : 0.6;
         const g = new THREE.Group();
+        if (!preview) {                                   // a little post holds the far end of the string
+          part(g, 0x6a4a34, 0.12, 1.8, 0.12, B.x, 0.9, B.z);
+          part(g, 0x5a4030, 0.22, 0.08, 0.22, B.x, 1.82, B.z);
+        }
         const pts = [];
         for (let i = 0; i <= 40; i++) {
           const u = i / 40, f = (u * swags) % 1;

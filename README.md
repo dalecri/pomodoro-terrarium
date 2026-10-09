@@ -2,10 +2,10 @@
 
 # Pomodoro Terrarium
 
-A cozy pomodoro timer where an isometric voxel garden island grows while you work. The island has a dusky-mauve sky, indigo grass, a little cabin with chimney smoke, a lily pond and old blossom trees. Reimagined from
+A cozy pomodoro timer where an isometric voxel garden island grows while you work. The island has a dusky-mauve sky, indigo grass, a little cabin with chimney smoke and a lily pond. Each island starts fresh, with no trees until you grow them. Reimagined from
 [typing-speed-terrarium](https://github.com/dalecri/typing-speed-terrarium).
 
-- **Three islands**: *Blossom Hollow* (wood cabin, magenta blossoms, olive pond), *Amber Mill* (stone windmill, autumn maples, ducklings) and *Moonlit Greenhouse* (glass greenhouse, frost blossoms, koi). New users pick one in the intro, and each new garden in the album starts on a different island.
+- **Three islands**: *Blossom Hollow* (wood cabin, olive pond), *Amber Mill* (stone windmill, teal pond, ducklings) and *Moonlit Greenhouse* (glass greenhouse, lilac pond, koi). New users pick one in the intro, and each new garden in the album starts on a different island.
 - **Quebec seasons**: the island follows the calendar in Quebec's time zone. Winter (Dec–Mar) brings snow on the roofs and ground, frosted trees, a frozen pond and snowfall. Fall (Sep–Nov) turns the trees maple red and scatters leaves. Preview any season from settings.
 - **More land**: buy the Meadow expansion (13×13) and the Grand estate (15×15) in the shop's Land tab. Everything already planted stays put.
 - **The family cats**: Diego (rosetted Bengal), Ramses (spotted Savannah), Cali (calico) and Neo (white with grey tabby patches) roam the island, groom, and nap at night. Adopt them free from the Critters tab.
