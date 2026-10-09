@@ -19,6 +19,20 @@
   const MAPLE = [0xc8402a, 0xe0602a, 0xf08a30, 0xb03020, 0xe8a040];
   const SNOWY = [0xf4f6fb, 0xe6ecf6, 0xdfe6f2, 0xffffff, 0xd2dcec];
   const SNOW = [0xeef2fa, 0xe4eaf6, 0xf6f8fc, 0xdde4f2];
+  // Seasonal grass: rotate the island's own hue (blending indigo toward green would pass through grey)
+  const SEASON_GRASS = {
+    spring: { hue: 0.5, mix: 0.4, sat: 1.12, light: 1.12 },   // fresh, light periwinkle-teal
+    summer: { hue: 0.38, mix: 0.55, sat: 1.2, light: 0.95 },  // deep, lush teal-green
+  };
+  function seasonGrass(hex, jitter) {
+    if (season === 'fall') return lerpHex(hex, 0x6a4a66, 0.16 * jitter);   // the dusky purple
+    const sg = SEASON_GRASS[season], c = new THREE.Color(hex), hsl = {};
+    c.getHSL(hsl);
+    let dh = sg.hue - hsl.h;
+    if (dh > 0.5) dh -= 1; else if (dh < -0.5) dh += 1;           // shortest way around the wheel
+    c.setHSL((hsl.h + dh * sg.mix * jitter + 1) % 1, Math.min(1, hsl.s * sg.sat), Math.min(0.85, hsl.l * sg.light));
+    return c.getHex();
+  }
   const snowflakes = [];
   const VOX = 1;
   const SOIL_TOP = 0;
@@ -393,9 +407,7 @@
     const grassFor = () => {
       const g = pick(SC.grass, r);
       if (season === 'winter') return r() < 0.88 ? pick(SNOW, r) : lerpHex(g, 0xdde4f2, 0.62);   // grass barely peeking through
-      if (season === 'fall') return lerpHex(g, 0x6a4a66, 0.16);
-      if (season === 'spring') return lerpHex(g, 0x4a6e8e, 0.1);
-      return g;
+      return seasonGrass(g, 0.8 + r() * 0.4);                 // a little variance tile to tile
     };
     const ground = [];
     for (let x = MINC; x <= MAXC; x++) for (let z = MINC; z <= MAXC; z++) {
@@ -425,7 +437,7 @@
       }
       if (season === 'winter' && r() < 0.6) continue;  // most tufts are under the snow
       tufts.push({ x, y: tall ? 0.09 : 0.03, z, w: 0.12, h: tall ? 0.18 : 0.06, d: tall ? 0.12 : 0.3,
-        hex: season === 'winter' ? pick([0xffffff, 0xe8eef8], r) : pick(SC.tuft, r), ry: R(r, 0, 3) });
+        hex: season === 'winter' ? pick([0xffffff, 0xe8eef8], r) : seasonGrass(pick(SC.tuft, r), 1.1), ry: R(r, 0, 3) });
     }
     instanced(tufts);
     if (season === 'winter') buildSnowfall();
