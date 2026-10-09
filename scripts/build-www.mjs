@@ -12,7 +12,7 @@ rmSync(out, { recursive: true, force: true });
 mkdirSync(join(out, 'vendor', 'fonts'), { recursive: true });
 mkdirSync(join(out, 'assets'), { recursive: true });
 
-for (const f of ['app.js', 'terrarium.js', 'sound.js', 'storage.js', 'device.js']) copyFileSync(join(root, f), join(out, f));
+for (const f of ['app.js', 'terrarium.js', 'sound.js', 'storage.js', 'device.js', 'gtasks.js']) copyFileSync(join(root, f), join(out, f));
 for (const f of ['logo-mark.png', 'favicon.png', 'apple-touch-icon.png']) copyFileSync(join(root, 'assets', f), join(out, 'assets', f));
 copyFileSync(nm('three/build/three.min.js'), join(out, 'vendor', 'three.min.js'));
 copyFileSync(nm('@capacitor/core/dist/capacitor.js'), join(out, 'vendor', 'capacitor.js'));

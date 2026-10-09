@@ -402,11 +402,12 @@ Store.ready.then(function () {
     e.preventDefault();
     const text = $('taskInput').value.trim();
     if (!text) return;
-    const t = { id: Date.now(), text, done: false, pomos: 0, planted: false };
+    const t = { id: Date.now(), text, done: false, pomos: 0, planted: false, dirty: true, mt: Date.now() };
     S.tasks.push(t);
     if (!activeTask()) S.activeTaskId = t.id;
     $('taskInput').value = '';
     save(); renderTasks(); renderTimer();
+    GTasks.touch();
   });
 
   $('taskList').addEventListener('click', e => {
@@ -415,9 +416,12 @@ Store.ready.then(function () {
     if (e.target.closest('.t-del')) {
       S.tasks.splice(S.tasks.indexOf(t), 1);
       if (S.activeTaskId === t.id) S.activeTaskId = null;
+      if (t.gid) { S.gsync.tombs.push(t.gid); GTasks.touch(); }
     } else if (e.target.closest('.check')) {
       t.done = !t.done;
+      t.dirty = true; t.mt = Date.now();
       if (t.done) finishTask(t);
+      GTasks.touch();
     } else if (!t.done) {
       S.activeTaskId = S.activeTaskId === t.id ? null : t.id;
       Sound.unlock();
@@ -452,6 +456,7 @@ Store.ready.then(function () {
   }
 
   $('clearDone').addEventListener('click', () => {
+    if (S.tasks.some(t => t.done && t.gid)) { S.gsync.clear = true; GTasks.touch(); }   // hides them in Google too
     S.tasks = S.tasks.filter(t => !t.done);
     save(); renderTasks();
   });
@@ -915,7 +920,7 @@ Store.ready.then(function () {
     $('tour').hidden = true;
     if (!S.seenWelcome) { S.seenWelcome = true; save(); }
     if (firstTask) {
-      const t = { id: Date.now(), text: firstTask, done: false, pomos: 0, planted: false };
+      const t = { id: Date.now(), text: firstTask, done: false, pomos: 0, planted: false, dirty: true, mt: Date.now() };
       S.tasks.push(t);
       S.activeTaskId = t.id;
       save(); renderTasks(); renderTimer();
@@ -1024,8 +1029,62 @@ Store.ready.then(function () {
   window.addEventListener('resize', placeTour);
   $('replayTour').addEventListener('click', () => { $('settings').classList.remove('open'); startTour(); });
 
+  // =====================================================
+  // Google Tasks sync (a "Focus" list; Muse and the Tasks app write there)
+  // =====================================================
+  const GOOGLE_WEB_CLIENT_ID = '139246714495-pt7fchq7eta9924plt6ksl42id1gduea.apps.googleusercontent.com';
+  let gState = 'off';
+  function ago(ms) {
+    const m = Math.round((Date.now() - ms) / 60000);
+    return m < 1 ? 'just now' : m < 60 ? `${m} min ago` : `${Math.round(m / 60)} h ago`;
+  }
+  function renderGoogle() {
+    const g = S.gsync, on = g.on;
+    $('gStatus').textContent = !on ? 'Not connected'
+      : g.needsAuth ? 'Signed out'
+      : gState === 'syncing' ? 'Syncing…'
+      : gState === 'error' ? GTasks.error()
+      : g.last ? `Synced ${ago(g.last)}` : 'Connected';
+    $('gBtn').textContent = !on ? 'Connect' : g.needsAuth ? 'Reconnect' : 'Sync now';
+    $('gOff').hidden = !on;
+    $('gFoot').textContent = on ? (g.needsAuth ? '⚠ Google Tasks: sign in again' : `☁ Synced with Google Tasks · ${g.last ? ago(g.last) : '…'}`) : 'Tap a task to tend it';
+  }
+  GTasks.setup({
+    state: () => S,
+    save: () => save(),
+    webClientId: GOOGLE_WEB_CLIENT_ID,
+    status: st => { gState = st; renderGoogle(); },
+    changed: ({ added, finished }) => {
+      // finished in Google Tasks or by Muse: grows a plant and earns coins, once per task
+      finished.forEach(t => finishTask(t));
+      if (added) toast(`🌱 ${added} new task${added === 1 ? '' : 's'} from Google Tasks`);
+      if (!activeTask()) { const next = S.tasks.find(t => !t.done); if (next) S.activeTaskId = next.id; }
+      save(); renderTasks(); renderTimer();
+    },
+  });
+  $('gBtn').addEventListener('click', async () => {
+    const g = S.gsync;
+    if (g.on && !g.needsAuth) { GTasks.sync('manual'); return; }
+    try {
+      $('gStatus').textContent = 'Opening Google…';
+      await GTasks.connect();
+      toast(`Connected to Google Tasks${S.gsync.email ? ` as ${esc(S.gsync.email)}` : ''}. Syncing your “Focus” list 🌱`, 5000);
+    } catch (e) {
+      console.warn(e);
+      toast('Couldn’t connect to Google Tasks. ' + esc(e.code === 'CANCELLED' ? 'Sign-in was cancelled.' : (e.message || '')).slice(0, 120), 6000);
+    }
+    renderGoogle();
+  });
+  $('gOff').addEventListener('click', async () => {
+    await GTasks.disconnect();
+    toast('Disconnected from Google Tasks. Your tasks stay in the app.');
+    renderGoogle(); renderTasks();
+  });
+  setInterval(renderGoogle, 30000);
+  if (Store.app) Store.app.addListener('resume', () => GTasks.sync('resume'));
+
   // ---------- boot ----------
-  function renderAll() { render(); renderTasks(); renderStats(); renderJournal(); renderShelf(); renderSettings(); renderSeasonBtn(); }
+  function renderAll() { renderGoogle(); render(); renderTasks(); renderStats(); renderJournal(); renderShelf(); renderSettings(); renderSeasonBtn(); }
 
   // resume a session that was running while the tab was closed
   if (T.status !== 'idle' && T.growingId != null) Terrarium.setMarker(T.growingId);
@@ -1041,6 +1100,7 @@ Store.ready.then(function () {
   if (SPEED > 1) setTimeout(() => toast(`Demo speed ×${SPEED}: a minute passes every ${(60 / SPEED).toFixed(1)}s`, 4000), 300);
 
   setInterval(tick, 200);
+  GTasks.sync('boot');
   document.addEventListener('pointerdown', () => Sound.unlock(), { once: true });
 
   // Android back button: close whatever is open, otherwise tuck the app away

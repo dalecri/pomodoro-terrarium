@@ -40,6 +40,12 @@ Keys: <kbd>Space</kbd> start/pause · <kbd>N</kbd> new task · <kbd>Esc</kbd> cl
 
 The logo files in `assets/` are rendered by `assets/logo-generator.html`, using the same voxel style as the app.
 
+## Google Tasks sync
+
+Settings → **Google Tasks → Connect** links the app to a list called **Focus** in your Google Tasks (created if missing). Sync goes both ways: tasks added to that list anywhere (Google Tasks, Gmail, assistants like Muse) appear in the app, and tasks added, completed, deleted or cleared in the app update Google. A task completed outside the app still grows a plant and earns coins, once. The app syncs on open, on return to the foreground, every few minutes while open, and shortly after any change; edits made offline are queued. If both sides edit the same task, the newer edit wins.
+
+Setup: a Google Cloud project with the Tasks API enabled, an OAuth consent screen with the `.../auth/tasks` scope (your account as a test user), a **Web** client (origin `http://localhost:5179`, its ID is in `app.js`) and an **Android** client (package `com.pomodoroterrarium.app` plus your signing key's SHA-1). While the consent screen is in testing mode, Google signs you out every 7 days; tap **Reconnect**.
+
 ## Android app
 
 The Android app is a [Capacitor](https://capacitorjs.com) wrapper. three.js and the fonts are bundled, so it works fully offline. Your garden is saved in an on-device SQLite database (`storage.js`), so it survives Android clearing WebView storage, app updates and force-stops. To build a sideloadable debug APK at `dist/pomodoro-terrarium.apk` (needs JDK 21 and the Android SDK):

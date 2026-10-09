@@ -40,6 +40,8 @@ dependencies {
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')
+    // Google Tasks sync: silent OAuth tokens from Google Play services
+    implementation 'com.google.android.gms:play-services-auth:21.4.0'
 }
 
 apply from: 'capacitor.build.gradle'

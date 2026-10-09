@@ -365,6 +365,12 @@
   .buy.stored { background: var(--line); color: var(--ink); box-shadow: none; }
   .buy .coin { width: 16px; height: 16px; }
 
+  /* ---------- Google Tasks ---------- */
+  .g-row > span:first-child { display: flex; flex-direction: column; }
+  .g-status { font-size: 11px; font-weight: 700; color: var(--ink-faint); }
+  .g-ctl { display: flex; align-items: center; gap: 8px; }
+  .g-btn { padding: 6px 11px; font-size: 12px; }
+
   /* ---------- zoom ---------- */
   .view-reset {
     position: absolute; left: 50%; bottom: calc(300px + var(--sab)); transform: translateX(-50%); z-index: 6;
@@ -522,7 +528,7 @@
     </form>
     <ul class="task-list" id="taskList"></ul>
     <div class="foot">
-      <span>Tap a task to tend it</span>
+      <span id="gFoot">Tap a task to tend it</span>
       <button class="link-btn" id="clearDone">Clear finished</button>
     </div>
   </section>
@@ -544,6 +550,10 @@
       <div class="set-row">Auto-start breaks <button class="toggle" data-t="autoBreak" aria-label="Auto-start breaks"></button></div>
       <div class="set-row">Keep screen on while focusing <button class="toggle" data-t="awake" aria-label="Keep screen on while focusing"></button></div>
       <div class="set-row">Haptics <button class="toggle" data-t="haptics" aria-label="Haptics"></button></div>
+      <div class="set-row g-row">
+        <span>Google Tasks<small id="gStatus" class="g-status"></small></span>
+        <span class="g-ctl"><button class="link-btn" id="gOff" type="button" hidden>Disconnect</button><button class="btn g-btn" id="gBtn" type="button">Connect</button></span>
+      </div>
       <div class="set-row">Season <button class="link-btn" id="seasonBtn" type="button"></button></div>
       <div class="set-row">New here? <button class="link-btn" id="replayTour" type="button">Show the intro again</button></div>
     </div>
@@ -651,6 +661,7 @@
 <script src="sound.js"></script>
 <script src="storage.js"></script>
 <script src="device.js"></script>
+<script src="gtasks.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
