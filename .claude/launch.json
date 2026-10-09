@@ -4,7 +4,7 @@
     {
       "name": "terrarium",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "5179", "--bind", "127.0.0.1"],
+      "runtimeArgs": ["scripts/dev-server.py", "5179"],
       "port": 5179
     }
   ]
