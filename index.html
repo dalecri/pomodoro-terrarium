@@ -404,7 +404,7 @@
     background: radial-gradient(circle at 50% 62%, rgba(255, 240, 250, .9), rgba(255, 255, 255, 0) 68%), linear-gradient(#b48aa8, #8a6688);
   }
   .tour-art[hidden] { display: none; }
-  .tour-choices { display: flex; flex-direction: column; gap: 6px; margin: -4px 0 14px; text-align: left; }
+  .tour-choices { display: flex; flex-direction: column; gap: 6px; margin: -4px 0 14px; text-align: left; max-height: min(320px, 42vh); overflow-y: auto; padding: 2px; }
   .choice {
     display: flex; align-items: center; gap: 10px; width: 100%; cursor: pointer;
     border: 1.5px solid var(--line); background: var(--chip); border-radius: 14px; padding: 9px 11px;

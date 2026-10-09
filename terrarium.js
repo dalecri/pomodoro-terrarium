@@ -78,6 +78,58 @@
       path: [[5, 3], [4, 4]],
       spots: { gnome: [6, 3], lamp: [3, 3], bunny: [10, 10], rocks: [10, 6], lights: [1, 2] },
     },
+    cafe: {
+      name: 'Corner Café', tag: 'Pink café, striped awning, fountain',
+      grass: [0x4c4a84, 0x504e8c, 0x48467e, 0x545290, 0x4c4a88], tuft: [0x625e9e, 0x5c589a, 0x6c68aa],
+      blossom: [0xf28ab0, 0xf6a8c4, 0xe86f9c, 0xffc4d8, 0xf49ab8], trunk: 0x9a7a5e,
+      glow: [0x7fe0d0, 0x9af0e0, 0x6ad0c0], flowers: [0xff9ac0, 0xffd06a, 0xffffff, 0x8fd6e8],
+      pond: { x0: 6, z0: 5, water: 0x8ec8e0, opacity: 0.8, bed: 0x3e5a6a, reeds: [0x5aa890, 0x6ab8a0, 0x4a9880], swimmer: 'fountain' },
+      home: { type: 'cafe', x: 3, z: 2 },
+      trees: [],
+      fence: { axis: 'x', at: -HALF + 0.14, from: 0.5, to: 4.5 },
+      props: [['bistro', 3, 4], ['chalkboard', 1, 4]],
+      path: [[5, 2], [6, 3]],
+      spots: { gnome: [9, 3], lamp: [5, 4], bunny: [10, 10], rocks: [0, 10], lights: [8, 3] },
+    },
+    flats: {
+      name: 'Lavender Flats', tag: 'Three-storey flats, laundry line, goldfish',
+      grass: [0x4a4c86, 0x4e508e, 0x464880, 0x525492, 0x4a4c8a], tuft: [0x60629e, 0x5a5c9a, 0x6a6caa],
+      blossom: [0xf6b8d0, 0xffd0e0, 0xf09ac0, 0xffe4ee, 0xf4a8c8], trunk: 0x8a7060,
+      glow: [0xffd27a, 0xffe09a, 0xf0c060], flowers: [0xe84a4a, 0xffffff, 0xff8a8a, 0xffc04a],
+      pond: { x0: 2, z0: 6, water: 0x7ab0d0, opacity: 0.82, bed: 0x2e4a5a, reeds: [0x6a9a6a, 0x7aaa7a, 0x5a8a5a], swimmer: 'goldfish' },
+      home: { type: 'flats', x: 7, z: 1 },
+      trees: [],
+      fence: { axis: 'z', at: -HALF + 0.14, from: -1.5, to: 4.5 },
+      props: [['mailbox', 9, 4], ['bike', 4, 2]],
+      path: [[7, 3], [6, 4]],
+      spots: { gnome: [8, 3], lamp: [5, 4], bunny: [10, 10], rocks: [0, 10], lights: [5, 1] },
+    },
+    florist: {
+      name: 'Glass Florist', tag: 'Glass flower shop, buckets of blooms, koi',
+      grass: [0x4a5088, 0x4e5490, 0x464c82, 0x525894, 0x4a508c], tuft: [0x60669e, 0x5a609a, 0x6a70aa],
+      blossom: [0xffd8c8, 0xffc0b0, 0xffe8dc, 0xf8b0a0, 0xffccb8], trunk: 0x9a8070,
+      glow: [0x7ae8f0, 0x9af0f8, 0x6ad8e8], flowers: [0xff7ab0, 0xffd04a, 0xb084f0, 0xff8a5a],
+      pond: { x0: 2, z0: 1, water: 0x8ab8e0, opacity: 0.6, bed: 0x2a3460, reeds: [0x8a9ad0, 0xa0b0e0, 0x7a8ac0], swimmer: 'koi' },
+      home: { type: 'florist', x: 8, z: 4 },
+      trees: [],
+      fence: { axis: 'x', at: -HALF + 0.14, from: -5.0, to: -0.5 },
+      props: [['buckets', 9, 7], ['cart', 5, 4]],
+      path: [[8, 6], [7, 7]],
+      spots: { gnome: [6, 3], lamp: [6, 7], bunny: [10, 10], rocks: [0, 10], lights: [5, 6] },
+    },
+    lighthouse: {
+      name: 'Lighthouse Point', tag: 'Striped lighthouse, sweeping beam, sailboat',
+      grass: [0x465488, 0x4a5890, 0x425082, 0x4e5c94, 0x46548c], tuft: [0x5c6a9e, 0x56649a, 0x6674aa],
+      blossom: [0xff8a7a, 0xffa898, 0xf0705e, 0xffc0b0, 0xff9a8a], trunk: 0x8a7a6a,
+      glow: [0x6ae0f0, 0x8af0ff, 0x5ad0e0], flowers: [0xffffff, 0x8ab8ff, 0xffd04a, 0xff8a7a],
+      pond: { x0: 6, z0: 6, water: 0x5ab0c8, opacity: 0.82, bed: 0x264a5a, reeds: [0x5a9a8a, 0x6aaa9a, 0x4a8a7a], swimmer: 'sailboat' },
+      home: { type: 'lighthouse', x: 2, z: 2 },
+      trees: [],
+      fence: { axis: 'x', at: -HALF + 0.14, from: -0.5, to: 4.5, color: 0xf2eee6, rail: 0xfaf6ee },
+      props: [['anchor', 5, 2], ['rowboat', 1, 6]],
+      path: [[2, 4], [3, 5]],
+      spots: { gnome: [4, 4], lamp: [4, 6], bunny: [10, 10], rocks: [10, 3], lights: [5, 4] },
+    },
   };
   let sceneId = 'hollow', SC = SCENES.hollow;
   // cells holding scenery instead of garden plots
@@ -528,13 +580,45 @@
       part(g, 0xf0c03a, 0.1, 0.08, 0.1, 0, 0.16, -0.18);
       return { g, y: -0.28, rad: 0.75, speed: 0.35, bob: 0.02 };
     });
-    if (P.swimmer === 'koi' && !frozen) swimmers(cx, cz, 3, i => {
+    if ((P.swimmer === 'koi' || P.swimmer === 'goldfish') && !frozen) swimmers(cx, cz, 3, i => {
       const g = new THREE.Group();
-      const main = [0xff8a3a, 0xfff4ea, 0xff6a3a][i];
+      const main = (P.swimmer === 'goldfish' ? [0xffb020, 0xff8a10, 0xffc84a] : [0xff8a3a, 0xfff4ea, 0xff6a3a])[i];
       part(g, main, 0.12, 0.08, 0.36, 0, 0, 0);
-      part(g, i === 1 ? 0xff7a3a : 0xffffff, 0.1, 0.085, 0.12, 0, 0.005, 0.06);
+      part(g, P.swimmer === 'goldfish' ? 0xffd870 : i === 1 ? 0xff7a3a : 0xffffff, 0.1, 0.085, 0.12, 0, 0.005, 0.06);
       part(g, main, 0.16, 0.03, 0.12, 0, 0, -0.24);
       return { g, y: -0.4, rad: 0.5 + i * 0.25, speed: 0.5 - i * 0.08, bob: 0 };
+    });
+    if (P.swimmer === 'fountain') {
+      // a tiered stone fountain; in winter it rests, otherwise it sprays arcs of water
+      part(sceneGroup, 0x9692ac, 0.9, 0.3, 0.9, cx, -0.2, cz);
+      part(sceneGroup, 0xb0acc4, 0.46, 0.5, 0.46, cx, 0.2, cz);
+      part(sceneGroup, 0x9692ac, 0.74, 0.1, 0.74, cx, 0.5, cz);
+      part(sceneGroup, 0xb0acc4, 0.16, 0.32, 0.16, cx, 0.7, cz);
+      if (frozen) part(sceneGroup, 0xf4f6fb, 0.76, 0.06, 0.76, cx, 0.58, cz);
+      else {
+        const dm = new THREE.MeshBasicMaterial({ color: 0xc8ecff, transparent: true, opacity: 0.85 });
+        const drops = [];
+        for (let i = 0; i < 40; i++) {
+          const m = new THREE.Mesh(geo(0.06, 0.06, 0.06), dm);
+          sceneGroup.add(m);
+          drops.push({ m, a: rand(0, Math.PI * 2), t: rand(0, 1) });
+        }
+        sceneAnims.push(dt => drops.forEach(d => {
+          d.t += dt * 0.9;
+          if (d.t > 1) { d.t -= 1; d.a = rand(0, Math.PI * 2); }
+          const rr = 0.12 + d.t * 0.75;
+          d.m.position.set(cx + Math.cos(d.a) * rr, 0.88 + d.t * 0.9 - d.t * d.t * 2.0, cz + Math.sin(d.a) * rr);
+        }));
+      }
+    }
+    if (P.swimmer === 'sailboat' && !frozen) swimmers(cx, cz, 1, () => {
+      const g = new THREE.Group();
+      part(g, 0x8a5a3a, 0.24, 0.1, 0.5, 0, 0.05, 0);
+      part(g, 0x7a4a2a, 0.16, 0.08, 0.14, 0, 0.05, 0.3);
+      part(g, 0x5a3a2a, 0.03, 0.6, 0.03, 0, 0.38, 0);
+      [0.34, 0.28, 0.21, 0.14, 0.07].forEach((w, i) => part(g, 0xfff8f0, 0.02, 0.1, w, 0, 0.16 + i * 0.1, -w / 2 + 0.02));
+      part(g, 0xe84a4a, 0.02, 0.06, 0.1, 0, 0.66, -0.05);
+      return { g, y: -0.28, rad: 0.8, speed: 0.3, bob: 0.02 };
     });
   }
   const pondInfo = {};
@@ -690,22 +774,335 @@
         light: new THREE.Vector3(X, 1.1, Z),
       };
     },
+
+    cafe(X, Z) {
+      const g = new THREE.Group();
+      g.position.set(X, 0, Z);
+      const W = 2.6, D = 2.4, H = 1.9, B = 0.18, top = B + H;
+      const pink = 0xd47c8e, deep = 0xb85c70, trim = 0xf4ece8, teal = 0x3aa89a;
+      part(g, 0xc8c4d4, W + 0.2, B, D + 0.2, 0, B / 2, 0);                         // pale plinth
+      part(g, pink, W, H, D, 0, B + H / 2, 0);
+      part(g, deep, W + 0.03, 0.2, D + 0.03, 0, top - 0.1, 0);                        // cornice
+      part(g, 0xcac6d4, W - 0.2, 0.06, D - 0.2, 0, top + 0.03, 0);                     // flat roof
+      part(g, pink, W, 0.3, 0.12, 0, top + 0.15, -D / 2 + 0.06);                        // parapet
+      part(g, pink, 0.12, 0.3, D, -W / 2 + 0.06, top + 0.15, 0);
+      part(g, pink, 0.12, 0.3, D, W / 2 - 0.06, top + 0.15, 0);
+      part(g, deep, W, 0.55, 0.14, 0, top + 0.27, D / 2 - 0.07);                        // sign board rising at the front
+      part(g, trim, 1.2, 0.22, 0.03, -0.3, top + 0.3, D / 2 + 0.01);
+      // big front window with a warm glow, cream frame
+      const win = new THREE.Mesh(geo(1.5, 0.8, 0.05), glowMat(0xffd89a));
+      win.position.set(-0.3, B + 0.78, D / 2 + 0.02); g.add(win);
+      [[1.62, 0.08, 0, 0.36], [1.62, 0.08, 0, 1.2]].forEach(([w, h, x, y]) => part(g, trim, w, h, 0.08, -0.3 + x, B + y, D / 2 + 0.04));
+      [-1, 1].forEach(sx => part(g, trim, 0.08, 0.92, 0.08, -0.3 + sx * 0.8, B + 0.78, D / 2 + 0.04));
+      part(g, 0xe8b860, 1.5, 0.08, 0.16, -0.3, B + 0.36, D / 2 + 0.1);                // counter ledge
+      // striped awning, gently swaying
+      const aw = new THREE.Group();
+      aw.position.set(-0.3, B + 1.42, D / 2 + 0.3);
+      for (let i = 0; i < 8; i++) {
+        part(aw, i % 2 ? 0xffffff : teal, 0.22, 0.05, 0.62, -0.77 + i * 0.22, 0, 0);
+        part(aw, i % 2 ? 0xffffff : teal, 0.2, 0.12, 0.05, -0.77 + i * 0.22, -0.06, 0.31);
+      }
+      aw.rotation.x = 0.42;
+      g.add(aw);
+      sceneAnims.push((dt, t) => { aw.rotation.x = 0.42 + Math.sin(t * 1.3) * 0.025; });
+      // side door + window on the right face
+      part(g, 0x5a3a44, 0.08, 1.12, 0.62, W / 2 + 0.03, B + 0.56, -0.45);
+      const dg = new THREE.Mesh(geo(0.05, 0.42, 0.4), glowMat(0xffd89a)); dg.position.set(W / 2 + 0.07, B + 0.82, -0.45); g.add(dg);
+      part(g, 0xd8b060, 0.05, 0.06, 0.06, W / 2 + 0.09, B + 0.52, -0.25);
+      const sw = new THREE.Mesh(geo(0.05, 0.56, 0.56), glowMat(0xffd89a)); sw.position.set(W / 2 + 0.02, B + 0.95, 0.55); g.add(sw);
+      part(g, trim, 0.08, 0.66, 0.08, W / 2 + 0.04, B + 0.95, 0.55);
+      part(g, trim, 0.08, 0.08, 0.66, W / 2 + 0.04, B + 0.95, 0.55);
+      part(g, 0xc8c4d4, 0.42, 0.1, 0.74, W / 2 + 0.25, 0.05, -0.45);                    // step
+      // rooftop AC unit with a spinning fan
+      const ac = new THREE.Group();
+      ac.position.set(0.5, top + 0.06, -0.3);
+      part(ac, 0xe8e6ee, 0.72, 0.42, 0.62, 0, 0.21, 0);
+      part(ac, 0x8a8898, 0.48, 0.04, 0.48, 0, 0.43, 0);
+      const fan = new THREE.Group();
+      fan.position.y = 0.46;
+      for (let i = 0; i < 3; i++) { const b = part(fan, 0x3a3848, 0.42, 0.03, 0.09, 0, 0, 0); b.rotation.y = i * Math.PI / 3; }
+      part(fan, 0x5a5868, 0.1, 0.05, 0.1, 0, 0.01, 0);
+      ac.add(fan);
+      g.add(ac);
+      sceneAnims.push(dt => { fan.rotation.y += dt * 7; });
+      if (season === 'winter') {
+        part(g, 0xf4f6fb, W - 0.22, 0.08, D - 0.22, 0, top + 0.1, 0);
+        part(ac, 0xf4f6fb, 0.74, 0.05, 0.3, 0, 0.44, -0.16);
+        part(aw, 0xf4f6fb, 1.76, 0.04, 0.6, -0.0, 0.05, 0);
+      }
+      sceneGroup.add(g);
+      return {
+        g,
+        cat: { pos: new THREE.Vector3(X - 0.6, top + 0.06, Z - 0.25), ry: 0 },
+        eave: new THREE.Vector3(X + W / 2, top + 0.25, Z + D / 2),
+        light: new THREE.Vector3(X - 0.3, 1.0, Z + D / 2 + 0.9),
+      };
+    },
+
+    flats(X, Z) {
+      const g = new THREE.Group();
+      g.position.set(X, 0, Z);
+      const W = 2.6, D = 2.4, FH = 1.0, H = 3 * FH, B = 0.16, top = B + H;
+      const lav = 0x9a9cd8, lavD = 0x8486c4, cream = 0xf6eedc;
+      part(g, 0xb8b4c8, W + 0.2, B, D + 0.2, 0, B / 2, 0);
+      part(g, lav, W, H, D, 0, B + H / 2, 0);
+      part(g, lavD, W + 0.1, 0.16, D + 0.1, 0, top, 0);                                  // cornice
+      part(g, 0xb0b2e4, W - 0.16, 0.06, D - 0.16, 0, top + 0.1, 0);                        // roof
+      [[W, 0.22, 0.12, 0, D / 2 - 0.06], [W, 0.22, 0.12, 0, -D / 2 + 0.06]].forEach(([w, h, d, x, z]) => part(g, lavD, w, h, d, x, top + 0.19, z));
+      [-1, 1].forEach(sx => part(g, lavD, 0.12, 0.22, D, sx * (W / 2 - 0.06), top + 0.19, 0));
+      // windows (cream frames); some lit, and they switch on and off through the night
+      const panes = [], lit = glowMat(0xffd58a), dark = mat(0x4a4e7a);
+      const win = (x, y, z, onX) => {
+        part(g, cream, onX ? 0.06 : 0.5, 0.62, onX ? 0.5 : 0.06, x, y, z);
+        const pane = new THREE.Mesh(geo(onX ? 0.05 : 0.38, 0.5, onX ? 0.38 : 0.05), Math.random() < 0.6 ? lit : dark);
+        pane.position.set(x + (onX ? 0.03 : 0), y, z + (onX ? 0 : 0.03));
+        g.add(pane); panes.push(pane);
+        part(g, cream, onX ? 0.12 : 0.56, 0.06, onX ? 0.56 : 0.12, x + (onX ? 0.04 : 0), y - 0.34, z + (onX ? 0 : 0.04));   // sill
+      };
+      for (let f = 0; f < 3; f++) {
+        const y = B + f * FH + 0.55;
+        (f === 0 ? [-0.85, 0.85] : [-0.7, 0.7]).forEach(x => win(x, y, D / 2 + 0.02, false));
+        [-0.6, 0.6].forEach(z => win(W / 2 + 0.02, y, z, true));
+        if (f > 0) part(g, lavD, W + 0.04, 0.06, D + 0.04, 0, B + f * FH, 0);            // floor lines
+      }
+      sceneAnims.push((dt, t) => {
+        if (moodName !== 'night' || Math.random() > dt * 0.6) return;
+        const pn = pick(panes);
+        pn.material = pn.material === lit ? dark : lit;
+      });
+      // front door, steps and a red-and-white awning
+      part(g, 0x6a4a3a, 0.5, 0.78, 0.06, 0, B + 0.39, D / 2 + 0.03);
+      const dg = new THREE.Mesh(geo(0.3, 0.18, 0.05), glowMat(0xffd58a)); dg.position.set(0, B + 0.66, D / 2 + 0.06); g.add(dg);
+      part(g, 0xd8d4e4, 0.8, 0.08, 0.3, 0, 0.04, D / 2 + 0.25);
+      part(g, 0xd8d4e4, 0.8, 0.08, 0.2, 0, 0.12, D / 2 + 0.15);
+      const aw = new THREE.Group();
+      aw.position.set(0, B + 0.98, D / 2 + 0.24);
+      for (let i = 0; i < 5; i++) {
+        part(aw, i % 2 ? 0xffffff : 0xe84a4a, 0.16, 0.05, 0.5, -0.32 + i * 0.16, 0, 0);
+        part(aw, i % 2 ? 0xffffff : 0xe84a4a, 0.14, 0.1, 0.05, -0.32 + i * 0.16, -0.05, 0.25);
+      }
+      aw.rotation.x = 0.5;
+      g.add(aw);
+      // rooftop laundry line, fluttering in the breeze
+      [-0.85, 0.85].forEach(x => part(g, 0x6a6a7a, 0.05, 0.62, 0.05, x, top + 0.42, -0.4));
+      part(g, 0xf4f4f4, 1.7, 0.02, 0.02, 0, top + 0.7, -0.4);
+      const clothes = [];
+      [[-0.55, 0x7ac0e8, 0.3, 0.32], [-0.15, 0xf28ab0, 0.16, 0.24], [0.2, 0xffe07a, 0.34, 0.26], [0.58, 0xffffff, 0.28, 0.3]].forEach(([x, c, w, h], i) => {
+        const pv = new THREE.Group();
+        pv.position.set(x, top + 0.69, -0.4);
+        part(pv, c, w, h, 0.03, 0, -h / 2, 0);
+        g.add(pv);
+        clothes.push({ pv, ph: i * 1.3 });
+      });
+      sceneAnims.push((dt, t) => clothes.forEach(c => { c.pv.rotation.x = Math.sin(t * 2.2 + c.ph) * (0.18 + rain.amt * 0.25) - 0.08; }));
+      if (season === 'winter') {
+        part(g, 0xf4f6fb, W - 0.2, 0.08, D - 0.2, 0, top + 0.17, 0);
+        part(aw, 0xf4f6fb, 0.8, 0.04, 0.48, 0, 0.05, 0);
+      }
+      sceneGroup.add(g);
+      return {
+        g,
+        cat: { pos: new THREE.Vector3(X - 0.4, top + 0.14, Z + 0.45), ry: 0 },
+        eave: new THREE.Vector3(X + W / 2, top, Z + D / 2),
+        light: new THREE.Vector3(X, 1.0, Z + D / 2 + 0.9),
+      };
+    },
+
+    florist(X, Z) {
+      const g = new THREE.Group();
+      g.position.set(X, 0, Z);
+      const W = 2.6, D = 2.4, H = 1.75, B = 0.14, top = B + H;
+      const white = 0xf2f0f6, lav = 0x9a9ed8, rim = 0xf6eccc, glass = glowMat(0x8ee6f0);
+      part(g, 0xd8d6e4, W + 0.2, B, D + 0.2, 0, B / 2, 0);
+      part(g, white, W, H, D, 0, B + H / 2, 0);
+      // glass storefront on both front faces
+      [[-0.78, 0.8], [0.78, 0.8]].forEach(([x, w]) => { const m = new THREE.Mesh(geo(w, 1.0, 0.05), glass); m.position.set(x, B + 0.62, D / 2 + 0.02); g.add(m); });
+      const door = new THREE.Mesh(geo(0.52, 1.12, 0.05), glass); door.position.set(0, B + 0.56, D / 2 + 0.03); g.add(door);
+      part(g, white, 0.06, 1.12, 0.07, 0, B + 0.56, D / 2 + 0.05);
+      const side = new THREE.Mesh(geo(0.05, 1.0, 1.9), glass); side.position.set(W / 2 + 0.02, B + 0.62, 0); g.add(side);
+      [-0.32, 0.32].forEach(z => part(g, white, 0.07, 1.0, 0.06, W / 2 + 0.04, B + 0.62, z));
+      [-1.2, -0.3, 0.3, 1.2].forEach(x => part(g, white, 0.07, 1.0, 0.07, x, B + 0.62, D / 2 + 0.04));
+      // lavender band with a flower sign, cream rim on top
+      part(g, lav, W + 0.04, 0.5, D + 0.04, 0, top - 0.25, 0);
+      part(g, rim, W + 0.14, 0.1, D + 0.14, 0, top + 0.05, 0);
+      part(g, 0xa8aae0, W - 0.1, 0.05, D - 0.1, 0, top + 0.08, 0);
+      part(g, 0xffffff, 1.2, 0.3, 0.04, 0, top - 0.25, D / 2 + 0.04);
+      [[-0.42, 0xff7ab0], [-0.3, 0xffd04a]].forEach(([x, c]) => part(g, c, 0.12, 0.12, 0.03, x, top - 0.25, D / 2 + 0.07));
+      part(g, 0xb0b2c4, 0.6, 0.05, 0.03, 0.15, top - 0.25, D / 2 + 0.07);
+      // canopy wrapping the two shop fronts
+      part(g, lav, W + 0.7, 0.1, 0.55, 0.06, B + 1.32, D / 2 + 0.27);
+      part(g, lav, 0.55, 0.1, D + 0.7, W / 2 + 0.27, B + 1.32, 0.06);
+      // two rooftop vents with spinning fans
+      const fans = [];
+      [[-0.5, -0.35], [0.45, -0.35]].forEach(([x, z]) => {
+        part(g, 0xe0e0ea, 0.56, 0.3, 0.5, x, top + 0.25, z);
+        part(g, 0x8a8a9a, 0.4, 0.03, 0.4, x, top + 0.41, z);
+        const fan = new THREE.Group();
+        fan.position.set(x, top + 0.44, z);
+        for (let i = 0; i < 3; i++) { const b = part(fan, 0x4a4a5a, 0.36, 0.03, 0.08, 0, 0, 0); b.rotation.y = i * Math.PI / 3; }
+        g.add(fan); fans.push(fan);
+      });
+      sceneAnims.push(dt => { fans[0].rotation.y += dt * 6; fans[1].rotation.y -= dt * 5; });
+      if (season === 'winter') {
+        part(g, 0xf4f6fb, W - 0.12, 0.08, D - 0.12, 0, top + 0.13, 0);
+        part(g, 0xf4f6fb, W + 0.7, 0.05, 0.5, 0.06, B + 1.39, D / 2 + 0.27);
+        part(g, 0xf4f6fb, 0.5, 0.05, D + 0.7, W / 2 + 0.27, B + 1.39, 0.06);
+      }
+      sceneGroup.add(g);
+      return {
+        g,
+        cat: { pos: new THREE.Vector3(X, top + 0.1, Z + 0.55), ry: 0 },
+        eave: new THREE.Vector3(X - W / 2 - 0.3, B + 1.37, Z + D / 2 + 0.5),
+        light: new THREE.Vector3(X, 1.0, Z + D / 2 + 0.9),
+      };
+    },
+
+    lighthouse(X, Z) {
+      const g = new THREE.Group();
+      g.position.set(X, 0, Z);
+      part(g, 0x9692ac, 2.3, 0.5, 2.3, 0, 0.25, 0);                                       // rocky base
+      part(g, 0x8a86a0, 1.9, 0.2, 1.9, 0, 0.6, 0);
+      let y = 0.7;
+      for (let i = 0; i < 8; i++) {                                                         // striped tower
+        const w = 1.3 - i * 0.06;
+        part(g, i % 2 ? 0xf6f2ec : 0xd84a4a, w, 0.48, w, 0, y + 0.24, 0);
+        y += 0.48;
+      }
+      part(g, 0x3a5a7a, 0.42, 0.72, 0.06, 0, 1.06, 0.68);                                  // door
+      [[2.2, 0.66], [3.4, 0.6]].forEach(([wy, d]) => {
+        const w = new THREE.Mesh(geo(0.2, 0.26, 0.04), glowMat(0xffe7a0)); w.position.set(0, wy, d - 0.02); g.add(w);
+      });
+      // gallery, lantern room and cap
+      part(g, 0x3a3848, 1.5, 0.1, 1.5, 0, y + 0.05, 0);
+      [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz]) => part(g, 0x3a3848, 0.05, 0.3, 0.05, sx * 0.7, y + 0.25, sz * 0.7));
+      [[1.45, 0.05, 0, 0.7], [1.45, 0.05, 0, -0.7]].forEach(([w, h, x, z]) => part(g, 0x3a3848, w, h, h, x, y + 0.38, z));
+      [0.7, -0.7].forEach(x => part(g, 0x3a3848, 0.05, 0.05, 1.45, x, y + 0.38, 0));
+      const lamp = new THREE.Mesh(geo(0.46, 0.46, 0.46), glowMat(0xffe7a0));
+      lamp.position.y = y + 0.38; g.add(lamp);
+      [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz]) => part(g, 0x3a3848, 0.06, 0.55, 0.06, sx * 0.3, y + 0.38, sz * 0.3));
+      part(g, 0xd84a4a, 0.82, 0.18, 0.82, 0, y + 0.74, 0);
+      part(g, 0xd84a4a, 0.5, 0.16, 0.5, 0, y + 0.9, 0);
+      part(g, 0x3a3848, 0.12, 0.14, 0.12, 0, y + 1.04, 0);
+      // the sweeping beam: faint by day, bright at night
+      const beamMat = new THREE.MeshBasicMaterial({ color: 0xffe08a, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false });
+      const beam = new THREE.Group();
+      beam.position.y = y + 0.38;
+      // two tapered rays: a few thin boxes per side, widening and fading away from the lamp
+      [-1, 1].forEach(s => [0, 1, 2, 3].forEach(i => {
+        const b = new THREE.Mesh(geo(0.1 + i * 0.07, 0.08 + i * 0.05, 0.62), beamMat);
+        b.position.z = s * (0.45 + i * 0.6);
+        b.scale.setScalar(1);
+        beam.add(b);
+      }));
+      const glowH = halo(0xfff0b0, 1.6);
+      glowH.position.y = y + 0.38; g.add(glowH);
+      g.add(beam);
+      sceneAnims.push(dt => {
+        beam.rotation.y += dt * 0.8;
+        beamMat.opacity = Math.max(0, moodCur.glow - 0.3) * 0.5;   // only once dusk falls
+        glowH.material.opacity = 0.15 + moodCur.glow * 0.7;
+      });
+      if (season === 'winter') {
+        part(g, 0xf4f6fb, 2.3, 0.06, 2.3, 0, 0.53, 0);
+        part(g, 0xf4f6fb, 0.84, 0.06, 0.84, 0, y + 0.86, 0);
+      }
+      sceneGroup.add(g);
+      return {
+        g,
+        cat: { pos: new THREE.Vector3(X + 0.5, y + 0.11, Z), ry: Math.PI / 2 },
+        eave: new THREE.Vector3(X + 0.7, y + 0.1, Z + 0.7),
+        light: new THREE.Vector3(X, 1.2, Z + 1.3),
+      };
+    },
   };
 
   function buildFence() {
     const F = SC.fence, len = F.to - F.from;
     const at = (u, y, w, h, d) => F.axis === 'z'
-      ? part(sceneGroup, 0x6a4a34, w, h, d, fenceAt(), y, u)
-      : part(sceneGroup, 0x6a4a34, d, h, w, u, y, fenceAt());
+      ? part(sceneGroup, F.color || 0x6a4a34, w, h, d, fenceAt(), y, u)
+      : part(sceneGroup, F.color || 0x6a4a34, d, h, w, u, y, fenceAt());
     for (let u = F.from; u <= F.to + 0.01; u += 1) at(u, 0.36, 0.14, 0.72, 0.14);
     [0.56, 0.28].forEach(y => {
       const rail = at((F.from + F.to) / 2, y, 0.08, 0.08, len + 0.1);
-      rail.material = mat(0x7a5a40);
+      rail.material = mat(F.rail || 0x7a5a40);
     });
     if (season === 'winter') at((F.from + F.to) / 2, 0.62, 0.1, 0.05, len + 0.1).material = mat(0xf4f6fb);
   }
 
   const PROPS = {
+    bistro(X, Z) {
+      part(sceneGroup, 0xf4ece8, 0.42, 0.04, 0.42, X, 0.42, Z);
+      part(sceneGroup, 0x5a5868, 0.05, 0.4, 0.05, X, 0.21, Z);
+      [-1, 1].forEach(s => {
+        part(sceneGroup, 0x3aa89a, 0.24, 0.04, 0.24, X + s * 0.36, 0.26, Z);
+        part(sceneGroup, 0x2a8a7a, 0.04, 0.26, 0.22, X + s * 0.47, 0.4, Z);
+        part(sceneGroup, 0x5a5868, 0.18, 0.24, 0.18, X + s * 0.36, 0.12, Z);
+      });
+      part(sceneGroup, 0xf4ece8, 0.04, 0.9, 0.04, X, 0.82, Z);
+      part(sceneGroup, 0x3aa89a, 0.9, 0.06, 0.9, X, 1.24, Z);
+      part(sceneGroup, 0xffffff, 0.62, 0.06, 0.62, X, 1.3, Z);
+      part(sceneGroup, 0x3aa89a, 0.3, 0.06, 0.3, X, 1.35, Z);
+    },
+    chalkboard(X, Z) {
+      const parts = [
+        part(sceneGroup, 0x6a4a34, 0.5, 0.7, 0.06, X, 0.35, Z + 0.08),
+        part(sceneGroup, 0x2e3a34, 0.42, 0.56, 0.02, X, 0.37, Z + 0.12),
+        part(sceneGroup, 0xffffff, 0.26, 0.03, 0.02, X, 0.47, Z + 0.135),
+        part(sceneGroup, 0xff9ac0, 0.18, 0.03, 0.02, X, 0.38, Z + 0.135),
+        part(sceneGroup, 0xffd06a, 0.22, 0.03, 0.02, X, 0.29, Z + 0.135),
+      ];
+      parts.forEach(m => { m.rotation.x = -0.22; });
+      part(sceneGroup, 0x6a4a34, 0.46, 0.66, 0.05, X, 0.33, Z - 0.1).rotation.x = 0.22;
+    },
+    mailbox(X, Z) {
+      part(sceneGroup, 0x6a4a34, 0.08, 0.6, 0.08, X, 0.3, Z);
+      part(sceneGroup, 0x3a5ab0, 0.24, 0.22, 0.36, X, 0.7, Z);
+      part(sceneGroup, 0xe84a4a, 0.04, 0.16, 0.08, X + 0.14, 0.76, Z - 0.08);
+    },
+    bike(X, Z) {
+      [-0.26, 0.26].forEach(dz => {
+        part(sceneGroup, 0x2a2a34, 0.05, 0.38, 0.38, X, 0.19, Z + dz);
+        part(sceneGroup, 0x8a8898, 0.06, 0.08, 0.08, X, 0.19, Z + dz);
+      });
+      part(sceneGroup, 0xe84a4a, 0.05, 0.05, 0.52, X, 0.32, Z);
+      part(sceneGroup, 0xe84a4a, 0.05, 0.22, 0.05, X, 0.3, Z - 0.1);
+      part(sceneGroup, 0x3a2a2a, 0.1, 0.05, 0.16, X, 0.43, Z - 0.12);
+      part(sceneGroup, 0x8a8898, 0.32, 0.04, 0.04, X, 0.46, Z + 0.2);
+      part(sceneGroup, 0xc8a060, 0.2, 0.14, 0.18, X, 0.42, Z + 0.32);
+    },
+    buckets(X, Z) {
+      [[-0.22, -0.12, 0xff7ab0], [0.2, -0.16, 0xffd04a], [0.02, 0.22, 0xb084f0]].forEach(([dx, dz, c]) => {
+        part(sceneGroup, 0xb8bcc8, 0.26, 0.28, 0.26, X + dx, 0.14, Z + dz);
+        part(sceneGroup, 0x5a9a5a, 0.18, 0.16, 0.18, X + dx, 0.34, Z + dz);
+        [[-0.06, -0.05], [0.06, 0.04], [0, 0.07], [-0.04, 0.06]].forEach(([a, b]) => part(sceneGroup, c, 0.1, 0.1, 0.1, X + dx + a, 0.46, Z + dz + b));
+      });
+    },
+    cart(X, Z) {
+      part(sceneGroup, 0x8a6a4a, 0.9, 0.12, 0.5, X, 0.42, Z);
+      part(sceneGroup, 0x7a5a3a, 0.92, 0.18, 0.06, X, 0.55, Z + 0.25);
+      part(sceneGroup, 0x7a5a3a, 0.92, 0.18, 0.06, X, 0.55, Z - 0.25);
+      [-0.32, 0.32].forEach(dx => part(sceneGroup, 0x4a3a30, 0.32, 0.32, 0.06, X + dx, 0.18, Z + 0.28));
+      [-0.32, 0.32].forEach(dx => part(sceneGroup, 0x4a3a30, 0.32, 0.32, 0.06, X + dx, 0.18, Z - 0.28));
+      part(sceneGroup, 0x8a6a4a, 0.5, 0.05, 0.05, X + 0.68, 0.5, Z);
+      const cs = [0xff7ab0, 0xffd04a, 0xb084f0, 0xff8a5a, 0xffffff];
+      for (let i = 0; i < 14; i++) part(sceneGroup, cs[i % cs.length], 0.12, 0.12, 0.12, X - 0.35 + (i % 7) * 0.12, 0.56 + (i > 6 ? 0.08 : 0), Z - 0.12 + (i > 6 ? 0.18 : 0));
+    },
+    anchor(X, Z) {
+      const c = 0x3a3848;
+      part(sceneGroup, c, 0.1, 0.62, 0.1, X, 0.36, Z);
+      part(sceneGroup, c, 0.2, 0.08, 0.08, X, 0.7, Z);
+      part(sceneGroup, c, 0.44, 0.07, 0.07, X, 0.56, Z);
+      part(sceneGroup, c, 0.56, 0.08, 0.08, X, 0.08, Z);
+      [-1, 1].forEach(s => part(sceneGroup, c, 0.08, 0.2, 0.08, X + s * 0.28, 0.16, Z));
+    },
+    rowboat(X, Z) {
+      part(sceneGroup, 0x4a7ab0, 0.52, 0.22, 1.0, X, 0.11, Z);
+      part(sceneGroup, 0x4a7ab0, 0.36, 0.18, 0.2, X, 0.11, Z + 0.56);
+      part(sceneGroup, 0xf4ece8, 0.54, 0.05, 1.02, X, 0.24, Z);
+      part(sceneGroup, 0x3a5a80, 0.42, 0.05, 0.88, X, 0.2, Z);
+      part(sceneGroup, 0x8a6a4a, 0.44, 0.05, 0.12, X, 0.24, Z - 0.1);
+      part(sceneGroup, 0x8a6a4a, 0.06, 0.04, 1.1, X + 0.34, 0.06, Z).rotation.y = 0.3;
+    },
     barrel(X, Z) {
       part(sceneGroup, 0x7a5a40, 0.6, 0.72, 0.6, X, 0.36, Z);
       part(sceneGroup, 0x3a3530, 0.64, 0.06, 0.64, X, 0.16, Z);
@@ -750,7 +1147,8 @@
   function buildProps(r) {
     SC.props.forEach(([kind, gx, gz]) => {
       PROPS[kind](cellX(gx), cellZ(gz));
-      const capAt = { barrel: [0.6, 0.77], crate: [0.6, 0.62], hay: [0.6, 0.94], well: [0.9, 1.5], bench: [0.85, 0.4] }[kind];
+      const capAt = { barrel: [0.6, 0.77], crate: [0.6, 0.62], hay: [0.6, 0.94], well: [0.9, 1.5], bench: [0.85, 0.4],
+        bistro: [0.62, 1.37], mailbox: [0.3, 0.83], cart: [0.86, 0.6], rowboat: [0.5, 0.28] }[kind];
       if (season === 'winter' && capAt) part(sceneGroup, 0xf4f6fb, capAt[0], 0.07, capAt[0] * 0.7, cellX(gx), capAt[1], cellZ(gz));
     });
     // stepping stones from the front door
