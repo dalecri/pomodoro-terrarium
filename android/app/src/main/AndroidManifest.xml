@@ -32,4 +32,6 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- timer alerts must land on time: timer apps may use exact alarms (auto-granted on Android 13+) -->
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
 </manifest>

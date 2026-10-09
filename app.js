@@ -10,7 +10,7 @@ Store.ready.then(function () {
   const MIN = 60000 / SPEED;
 
   const DEFAULTS = {
-    settings: { focus: 25, short: 5, long: 15, longEvery: 4, fx: true, amb: true, autoBreak: false, season: 'auto' },
+    settings: { focus: 25, short: 5, long: 15, longEvery: 4, fx: true, amb: true, autoBreak: false, season: 'auto', awake: true, haptics: true },
     timer: { mode: 'focus', status: 'idle', endAt: 0, remaining: 0, total: 0, growingId: null },
     cycle: 0,
     tasks: [],
@@ -47,6 +47,11 @@ Store.ready.then(function () {
     { id: 'moonflower', cat: 'flowers', kind: 'moonflower', price: 15, name: 'Moonflower', desc: 'Glows softly, brightest on long breaks.' },
     { id: 'bonsai', cat: 'flowers', kind: 'bonsai', price: 20, name: 'Bonsai pine', desc: 'Patiently pruned cloud pads.' },
     { id: 'rainbow', cat: 'flowers', kind: 'rainbow', price: 25, name: 'Rainbow tulip', desc: 'Every petal a different color.' },
+    { id: 'hydrangea', cat: 'flowers', kind: 'hydrangea', price: 10, name: 'Hydrangea', desc: 'A big puffball of blue, pink or purple florets.' },
+    { id: 'foxglove', cat: 'flowers', kind: 'foxglove', price: 11, name: 'Foxglove', desc: 'A tall spike of freckled bells.' },
+    { id: 'paradise', cat: 'flowers', kind: 'paradise', price: 14, name: 'Bird of paradise', desc: 'Looks like a tiny orange bird mid-song.' },
+    { id: 'monstera', cat: 'flowers', kind: 'monstera', price: 18, name: 'Monstera', desc: 'Big split leaves, very houseplant-core.' },
+    { id: 'crystal', cat: 'flowers', kind: 'crystal', price: 30, name: 'Crystal bloom', desc: 'Glowing gem shards. Sparkles brightest at night.' },
     { id: 'cat_diego', cat: 'fauna', price: 0, family: true, name: 'Diego', desc: 'Rosetted Bengal. Stalks butterflies, naps in sunbeams.', toast: 'Diego is prowling the island 🐾' },
     { id: 'cat_ramses', cat: 'fauna', price: 0, family: true, name: 'Ramses', desc: 'Spotted Savannah. Long legs, big ears, always exploring.', toast: 'Ramses moved in and is already exploring 🐾' },
     { id: 'cat_cali', cat: 'fauna', price: 0, family: true, name: 'Cali', desc: 'Calico shorthair. Patches of orange, black and white.', toast: 'Cali found a sunny spot 🐾' },
@@ -166,9 +171,20 @@ Store.ready.then(function () {
     }
     T.status = 'running';
     T.endAt = Date.now() + T.remaining;
+    armAlarm();
+    buzz('light');
     save(true);
     render();
   }
+
+  // the OS fires this at T.endAt even if the app is backgrounded or killed
+  function armAlarm() {
+    const focus = T.mode === 'focus';
+    Device.scheduleTimer(T.endAt,
+      focus ? 'Your sprout bloomed! 🌼' : 'Break’s over 🌱',
+      focus ? 'Focus session complete. Time for a break.' : 'Ready to plant another seed?');
+  }
+  function buzz(kind) { if (S.settings.haptics) Device.buzz(kind); }
 
   function plantFocusSeed() {
     if (Terrarium.freeCount() === 0) {
@@ -191,6 +207,7 @@ Store.ready.then(function () {
     if (T.status !== 'running') return;
     T.remaining = Math.max(0, T.endAt - Date.now());
     T.status = 'paused';
+    Device.cancelTimer();
     save(true);
     render();
   }
@@ -211,6 +228,7 @@ Store.ready.then(function () {
     T.growingId = null;
     Terrarium.setMarker(null);
     T.status = 'idle';
+    Device.cancelTimer();
     syncGarden();
     save(true);
     render();
@@ -219,6 +237,8 @@ Store.ready.then(function () {
   function complete() {
     const mode = T.mode;
     T.status = 'idle';
+    Device.cancelTimer();          // celebrating in person, so the OS ping isn't needed
+    buzz('done');
     if (mode === 'focus') {
       const day = today();
       S.stats.total++;
@@ -241,14 +261,12 @@ Store.ready.then(function () {
       Sound.bloom();
       earn(COINS.bloom);
       toast(`Your ${esc(label)} bloomed 🌼 +${COINS.bloom} coins. Time for a break.`, 5000);
-      notify('Your ' + label + ' bloomed!', 'Focus complete. Time for a break.');
       setMode(S.cycle % S.settings.longEvery === 0 ? 'long' : 'short');
       checkUnlocks();
       if (S.settings.autoBreak) start();
     } else {
       Sound.breakOver();
       toast('Break\'s over. Ready to plant another seed? 🌱');
-      notify('Break\'s over', 'Ready to plant another seed?');
       setMode('focus');
     }
     save(true);
@@ -262,17 +280,12 @@ Store.ready.then(function () {
 
   function setMode(mode) {
     if (T.mode === 'focus' && T.status !== 'idle') return;
+    if (T.status === 'running') Device.cancelTimer();
     T.mode = mode;
     T.status = 'idle';
     T.remaining = T.total = durMs(mode);
     save(true);
     render();
-  }
-
-  function notify(title, body) {
-    try {
-      if (document.hidden && 'Notification' in window && Notification.permission === 'granted') new Notification(title, { body });
-    } catch (e) {}
   }
 
   // tick: drives growth + display. Uses wall-clock so background tabs stay correct.
@@ -347,6 +360,7 @@ Store.ready.then(function () {
 
   function render() {
     $('timer').classList.toggle('running', T.status === 'running');
+    Device.setAwake(S.settings.awake && T.mode === 'focus' && T.status === 'running');
     const main = $('mainBtn');
     if (T.status === 'running') main.textContent = 'Pause';
     else if (T.status === 'paused') main.textContent = 'Resume';
@@ -414,6 +428,7 @@ Store.ready.then(function () {
   function finishTask(t) {
     Sound.unlock();
     Sound.pop();
+    buzz('light');
     if (S.activeTaskId === t.id) {
       const next = S.tasks.find(x => !x.done && x.id !== t.id);
       S.activeTaskId = next ? next.id : null;
@@ -634,6 +649,8 @@ Store.ready.then(function () {
     S.settings[k] = !S.settings[k];
     if (k === 'fx') Sound.setFx(S.settings.fx);
     if (k === 'amb') { Sound.unlock(); Sound.setAmb(S.settings.amb); }
+    if (k === 'awake') render();
+    if (k === 'haptics' && S.settings.haptics) Device.buzz('medium');
     save(); renderSettings();
   }));
 
@@ -641,9 +658,13 @@ Store.ready.then(function () {
   $('mainBtn').addEventListener('click', () => {
     if (T.status === 'running') pause();
     else {
-      // ask once, politely, so a bloom can ping you from a background tab
-      if ('Notification' in window && Notification.permission === 'default' && S.stats.total === 0) {
-        try { Notification.requestPermission(); } catch (e) {}
+      // ask once, politely, so the timer can ping you when you're not in the app
+      if (!S.askedNotify) {
+        S.askedNotify = true;
+        Device.askPermission().then(ok => {
+          if (!ok) toast('Notifications are off, so you won’t be pinged when the timer ends. You can turn them on in your phone’s settings.', 6000);
+          else if (T.status === 'running') armAlarm();
+        });
       }
       start();
     }
@@ -1013,7 +1034,8 @@ Store.ready.then(function () {
   applyExtras();
   renderAll();
   renderCoins();
-  if (T.status === 'running' && T.endAt <= Date.now()) setTimeout(complete, 1200);   // bloom it after the garden wakes up
+  if (T.status === 'running' && T.endAt <= Date.now()) setTimeout(complete, 1200);
+  else if (T.status === 'running') armAlarm();     // restored after the app was killed   // bloom it after the garden wakes up
 
   if (!S.seenWelcome) setTimeout(startTour, 1100);    // let the garden wake up first
   if (SPEED > 1) setTimeout(() => toast(`Demo speed ×${SPEED}: a minute passes every ${(60 / SPEED).toFixed(1)}s`, 4000), 300);

@@ -8,6 +8,10 @@
   "plugins": {
     "CapacitorSQLite": {
       "androidIsEncryption": false
+    },
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_sprout",
+      "iconColor": "#E8684A"
     }
   }
 }

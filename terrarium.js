@@ -178,6 +178,9 @@
     cactus:   [0x4f9a5a, 0x5fae68, 0x6aa86a],
     bonsaiLeaf: [0x3f7a45, 0x4a8a50, 0x356b3b],
     rainbow:  [0xff5f6d, 0xffa94d, 0xffe066, 0x69db7c, 0x4dabf7, 0xb197fc],
+    hydrangea: [[0x7ea8f0, 0x9ab8ff, 0xa898f0, 0x6a90e0], [0xf0a0d0, 0xffb8e0, 0xe890c8, 0xd8a0f0], [0xb090f0, 0xc8a8ff, 0x9a7ae0, 0xd0b8ff]],
+    foxglove: [0xe070c0, 0xf090d0, 0xc860b0, 0xb898f0],
+    crystal:  [0x7ae8f0, 0xb098ff, 0xff9ad8, 0x9af0c8],
     fireflyCore: 0xffe8a0,
     fireflyGlow: 0xfff2c2,
   };
@@ -1629,6 +1632,113 @@
         }
       },
     },
+    hydrangea: {
+      label: 'Hydrangea',
+      level(p, lv, r) {
+        add(p, 0x4f8f4a, 0.16, 1, 0.16, 0, yAt(lv), 0);
+        for (let i = 0; i < 4; i++) {
+          const a = i * Math.PI / 2 + R(r, -0.3, 0.3);
+          add(p, i % 2 ? 0x4a9050 : 0x5aa45a, 0.5, 0.08, 0.36, Math.cos(a) * 0.2, 0.25 + lv * 0.5 + i * 0.05, -Math.sin(a) * 0.2, a, 0.25);
+        }
+      },
+      crown(p, r) {
+        // a big puffball of tiny florets, with two little side puffs
+        const y = yAt(p.h - 1) + 0.6, cols = COL.hydrangea[p.tint % 3];
+        const ball = (cx, cy, cz, rad, n) => {
+          for (let i = 0; i < n; i++) {
+            const u = R(r, -1, 1), a = R(r, 0, Math.PI * 2), q = Math.sqrt(1 - u * u);
+            add(p, pick(cols, r), 0.16, 0.16, 0.16, cx + Math.cos(a) * q * rad, cy + u * rad * 0.8, cz + Math.sin(a) * q * rad);
+          }
+        };
+        ball(0, y, 0, 0.36, 34);
+        ball(0.36, y - 0.38, 0.12, 0.2, 12);
+        ball(-0.3, y - 0.42, -0.16, 0.18, 10);
+      },
+    },
+    foxglove: {
+      label: 'Foxglove',
+      level(p, lv, r) {
+        add(p, 0x4a8a4a, 0.14, 1, 0.14, 0, yAt(lv), 0);
+        if (lv === 0) for (let i = 0; i < 5; i++) {
+          const a = i * Math.PI * 2 / 5;
+          add(p, 0x5a9e52, 0.6, 0.07, 0.24, Math.cos(a) * 0.24, 0.12, -Math.sin(a) * 0.24, a, 0.15);
+        }
+      },
+      crown(p, r) {
+        // bells hanging all the way up the top of the spike, smaller toward the tip
+        const top = yAt(p.h - 1) + 0.5;
+        for (let i = 0; i < 11; i++) {
+          const y = top - 1.55 + i * 0.16, s = 0.34 - i * 0.02, a = i * 2.2;
+          const x = Math.cos(a) * 0.19, z = -Math.sin(a) * 0.19;
+          add(p, p.tint, s, s * 1.2, s, x, y, z);
+          add(p, 0xfff0f8, s * 0.6, 0.04, s * 0.6, x, y - s * 0.62, z);          // pale mouth
+          add(p, 0x8a2a6a, 0.04, 0.04, 0.02, x, y - s * 0.45, z + s * 0.32);       // freckle
+        }
+        add(p, 0x6aa85a, 0.1, 0.24, 0.1, 0, top + 0.2, 0);
+      },
+    },
+    paradise: {
+      label: 'Bird of paradise',
+      level(p, lv, r) {
+        add(p, 0x3f7a4a, 0.14, 1, 0.14, 0, yAt(lv), 0);
+        if (lv === 0) [0.3, 2.3, 4.2].forEach((a, i) => {
+          add(p, 0x2f6e46, 0.06, 1.1, 0.08, Math.cos(a) * 0.12, 0.55, -Math.sin(a) * 0.12, a, 0.35);
+          add(p, i === 1 ? 0x4f9a5a : 0x468e52, 0.5, 1.1, 0.05, Math.cos(a) * 0.38, 1.0, -Math.sin(a) * 0.38, a + Math.PI / 2, 0.35);
+        });
+      },
+      crown(p) {
+        // the bird: a long green-grey beak, an orange crest fan and a blue tongue
+        const y = yAt(p.h - 1) + 0.55;
+        add(p, 0x6a8a7a, 1.0, 0.2, 0.2, 0.28, y, 0, 0, -0.18);
+        add(p, 0x9a4a6a, 0.16, 0.16, 0.16, 0.76, y - 0.09, 0);
+        [-0.6, -0.3, 0, 0.3, 0.55].forEach((a, i) => add(p, i % 2 ? 0xffa030 : 0xff7a20, 0.1, 0.7, 0.14, 0.04 + Math.sin(a) * 0.18, y + 0.36, Math.cos(a) * 0.08, 0, a));
+        add(p, 0x3a6ae0, 0.5, 0.09, 0.1, 0.34, y + 0.14, 0.05, 0, -0.3);
+      },
+    },
+    monstera: {
+      label: 'Monstera',
+      level(p, lv) {
+        add(p, 0x3f7a42, 0.1, 1, 0.1, 0, yAt(lv), 0);
+      },
+      crown(p, r) {
+        // big split leaves on arching stalks
+        const leaf = (a, h, tilt, big) => {
+          const x = Math.cos(a), z = -Math.sin(a), d = big ? 0.42 : 0.3;
+          add(p, 0x4a8a46, 0.05, h, 0.05, x * 0.12, h / 2, z * 0.12, 0, 0, 0);
+          const cx = x * d, cz = z * d, cy = h + 0.02;
+          const w = big ? 0.66 : 0.5;
+          add(p, 0x2e7a3e, w, 0.05, w * 0.9, cx, cy, cz, a, tilt);
+          // fenestrations: little dark slits cut into the leaf
+          for (let k = -1; k <= 1; k += 2) add(p, 0x1e5a2e, w * 0.36, 0.055, 0.05, cx + Math.cos(a + Math.PI / 2) * k * w * 0.18, cy + 0.003, cz - Math.sin(a + Math.PI / 2) * k * w * 0.18, a + k * 0.5, tilt);
+        };
+        [[0.3, 1.2, 0.35, true], [1.9, 0.9, 0.4, true], [3.4, 1.4, 0.3, true], [4.8, 0.7, 0.45, false], [5.8, 1.6, 0.25, false]]
+          .forEach(([a, h, t, big]) => leaf(a + R(r, -0.2, 0.2), h, t, big));
+        add(p, 0x9ad87a, 0.1, 0.34, 0.1, 0, 1.85, 0, 0, 0.2);                       // a new leaf unfurling
+      },
+    },
+    crystal: {
+      label: 'Crystal bloom',
+      level(p, lv, r) {
+        add(p, 0x5a6a9a, 0.12, 1, 0.12, 0, yAt(lv), 0);
+        if (lv === 0) for (let i = 0; i < 3; i++) {
+          const a = i * 2.1 + 0.4;
+          addGlow(p, pick(COL.crystal, r), 0.18, 0.4, 0.18, Math.cos(a) * 0.36, 0.2, -Math.sin(a) * 0.36, a);
+        }
+      },
+      crown(p, r) {
+        // a cluster of glowing crystal shards that brighten as night falls
+        const y = yAt(p.h - 1) + 0.75;
+        addGlow(p, pick(COL.crystal, r), 0.3, 0.95, 0.3, 0, y + 0.15, 0);
+        for (let i = 0; i < 7; i++) {
+          const a = i * Math.PI * 2 / 7 + R(r, -0.2, 0.2), h = R(r, 0.45, 0.75);
+          const m = addGlow(p, pick(COL.crystal, r), 0.2, h, 0.2, Math.cos(a) * 0.26, y - 0.05, -Math.sin(a) * 0.26, a);
+          m.rotation.z = Math.cos(a) * 0.5; m.rotation.x = Math.sin(a) * 0.5;
+        }
+        p.halo = halo(0xb8e8ff, 2.0);
+        p.halo.position.set(0, y + 0.1, 0);
+        p.group.add(p.halo);
+      },
+    },
   };
 
   const FOCUS_KINDS = ['fern', 'flower', 'stalk', 'daisy', 'allium', 'tulip', 'sunflower'];
@@ -1650,6 +1760,11 @@
       case 'cactus': return 2 + ((r() * 2) | 0);
       case 'moonflower': return 4;
       case 'flytrap': return 2;
+      case 'hydrangea': return 2;
+      case 'foxglove': return 3;
+      case 'paradise': return 2;
+      case 'monstera': return 1;
+      case 'crystal': return 1;
     }
     return 3;
   }
@@ -1662,6 +1777,8 @@
       case 'tulip': return [pick(COL.tulip, r)];
       case 'rose': { const c = pick(COL.rose, r); return [c, c === 0xd8283c ? 0xa01828 : c]; }
       case 'cactus': return [pick(COL.cactus, r)];
+      case 'hydrangea': return [(r() * 3) | 0];
+      case 'foxglove': return [pick(COL.foxglove, r)];
     }
     return [0];
   }

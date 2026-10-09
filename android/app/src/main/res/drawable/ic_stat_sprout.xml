@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Status-bar icon for timer notifications: a white voxel sprout (Android tints it). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+    <path android:fillColor="#FFFFFFFF" android:pathData="M11,10h2.4v9h-2.4z"/>
+    <path android:fillColor="#FFFFFFFF" android:pathData="M4,7h8v4.4h-8z"/>
+    <path android:fillColor="#FFFFFFFF" android:pathData="M12,4h8v4.4h-8z"/>
+    <path android:fillColor="#FFFFFFFF" android:pathData="M6,19h12v3h-12z"/>
+</vector>
