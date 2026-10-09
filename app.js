@@ -134,6 +134,9 @@ Store.ready.then(function () {
   const currentSeason = () => S.settings.season === 'auto' ? seasonFor(new Date()) : S.settings.season;
 
   Terrarium.init($('scene'), { scene: S.scene, land: S.land, season: currentSeason() });
+  // zoom: wheel or pinch on the island; a pill brings you back
+  Terrarium.onView(z => { $('viewReset').hidden = z <= 1.02; });
+  $('viewReset').addEventListener('click', () => Terrarium.resetView());
   Terrarium.load(S.garden);
   S.garden = Terrarium.serialize();     // plants may have been moved off scenery
   save();
@@ -879,6 +882,7 @@ Store.ready.then(function () {
   let tourAt = 0;
 
   function startTour() {
+    Terrarium.resetView();
     openSheet(null);
     closeShop();
     tourAt = 0;

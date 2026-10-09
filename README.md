@@ -16,7 +16,7 @@ A cozy pomodoro timer where an isometric voxel garden island grows while you wor
 - **Short break**: dusk, with a rain cloud watering the island. **Long break**: night, with stars, fireflies and crickets.
 - **Every 4th pomodoro** grows a cherry blossom tree.
 - **Critter journal**: butterflies, a snail, a ladybug, fireflies, a frog. Each has its own milestone.
-- **Hover any plant** to see which task it grew during. Drag to turn the island; double-click to reset.
+- **Hover any plant** to see which task it grew during. Drag to turn the island. Zoom in with the mouse wheel, a trackpad pinch or a two-finger pinch on touch screens, and drag to look around while zoomed. Double-click (or double-tap) to reset the view.
 - **Garden album**: when the island fills up (93 plots), save a snapshot to the album and start fresh.
 - **Coins & shop**: each finished task earns 2 coins and each bloom earns 3. Spend them in the garden shop (press <kbd>S</kbd>):
   - **Flowers** (6 to 25 coins): lavender, cactus, rose, lily of the valley, Venus flytrap, a glowing moonflower, bonsai, rainbow tulip. Each one is planted right away.

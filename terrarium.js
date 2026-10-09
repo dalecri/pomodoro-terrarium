@@ -298,10 +298,49 @@
     });
     const s = Math.max((x1 - x0) / aw, (y1 - y0) / ah);     // world units per pixel
     const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
-    camera.left = cx - (W / 2) * s; camera.right = camera.left + W * s;
-    camera.top = cy + (top + ah / 2) * s; camera.bottom = camera.top - H * s;
-    camera.updateProjectionMatrix();
+    const l = cx - (W / 2) * s, tp = cy + (top + ah / 2) * s;
+    fit = { l, r: l + W * s, t: tp, b: tp - H * s };
+    applyView();
   }
+
+  // ---- zoom + pan on top of the fitted view (wheel, pinch, drag while zoomed) ----
+  const view = { zoom: 1, panX: 0, panY: 0 };
+  let fit = null, viewCb = null;
+  const MAX_ZOOM = 4;
+  function applyView() {
+    if (!fit) return;
+    const bw = fit.r - fit.l, bh = fit.t - fit.b, w = bw / view.zoom, h = bh / view.zoom;
+    // keep the island in sight: you can pan about as far as you've zoomed
+    const mx = (bw / 2) * (1 - 1 / view.zoom) * 1.15, my = (bh / 2) * (1 - 1 / view.zoom) * 1.15;
+    view.panX = clamp(view.panX, -mx, mx); view.panY = clamp(view.panY, -my, my);
+    const cx = (fit.l + fit.r) / 2 + view.panX, cy = (fit.t + fit.b) / 2 + view.panY;
+    camera.left = cx - w / 2; camera.right = cx + w / 2;
+    camera.top = cy + h / 2; camera.bottom = cy - h / 2;
+    camera.updateProjectionMatrix();
+    if (viewCb) viewCb(view.zoom);
+  }
+  // zoom by `f` keeping the world point under screen pixel (sx, sy) where it is
+  function zoomAt(f, sx, sy) {
+    const W = container.clientWidth, H = container.clientHeight;
+    const wx = camera.left + (sx / W) * (camera.right - camera.left);
+    const wy = camera.top - (sy / H) * (camera.top - camera.bottom);
+    view.zoom = clamp(view.zoom * f, 1, MAX_ZOOM);
+    const w = (fit.r - fit.l) / view.zoom, h = (fit.t - fit.b) / view.zoom;
+    view.panX = wx - (sx / W) * w + w / 2 - (fit.l + fit.r) / 2;
+    view.panY = wy + (sy / H) * h - h / 2 - (fit.t + fit.b) / 2;
+    if (view.zoom === 1) { view.panX = 0; view.panY = 0; }
+    applyView();
+  }
+  function panBy(dx, dy) {
+    const upp = (camera.right - camera.left) / container.clientWidth;   // world units per pixel
+    view.panX -= dx * upp; view.panY += dy * upp;
+    applyView();
+  }
+  function resetView() {
+    view.zoom = 1; view.panX = 0; view.panY = 0; rotTarget = 0;
+    applyView();
+  }
+  function onView(fn) { viewCb = fn; }
 
   function onResize() {
     renderer.setSize(container.clientWidth, container.clientHeight);
@@ -2222,18 +2261,56 @@
     const el = renderer.domElement;
     const ray = new THREE.Raycaster();
     const ndc = new THREE.Vector2();
-    let down = null, dragging = false, lastHover = 0;
+    let down = null, dragging = false, lastHover = 0, lastTap = 0;
+    const touches = new Map();          // active pointers, for pinch
+    let pinch = null;
+    const local = e => { const r = el.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+    const pinchState = () => {
+      const [a, b] = [...touches.values()];
+      return { d: Math.hypot(a.x - b.x, a.y - b.y), mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 };
+    };
 
-    el.addEventListener('pointerdown', e => { down = { x: e.clientX, r: rotTarget }; dragging = false; });
-    window.addEventListener('pointerup', () => { down = null; setTimeout(() => { dragging = false; }, 0); el.style.cursor = ''; });
+    el.addEventListener('pointerdown', e => {
+      touches.set(e.pointerId, local(e));
+      if (touches.size === 2) { pinch = pinchState(); down = null; dragging = true; if (hoverCb) hoverCb(null); return; }
+      down = { x: e.clientX, y: e.clientY, r: rotTarget, px: e.clientX, py: e.clientY };
+      dragging = false;
+    });
+    const release = e => {
+      touches.delete(e.pointerId);
+      if (touches.size < 2) pinch = null;
+      // double-tap (touch) resets the view; mice use dblclick below
+      if (e.pointerType === 'touch' && down && !dragging) {
+        const now = performance.now();
+        if (now - lastTap < 320) { resetView(); lastTap = 0; } else lastTap = now;
+      }
+      down = null; setTimeout(() => { dragging = false; }, 0); el.style.cursor = '';
+    };
+    window.addEventListener('pointerup', release);
+    window.addEventListener('pointercancel', release);
     el.addEventListener('pointerleave', () => { if (hoverCb) hoverCb(null); });
-    el.addEventListener('dblclick', () => { rotTarget = 0; });
+    el.addEventListener('dblclick', resetView);
+    el.addEventListener('wheel', e => {
+      e.preventDefault();
+      const p = local(e);
+      zoomAt(Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0015)), p.x, p.y);   // ctrl+wheel = trackpad pinch
+    }, { passive: false });
     el.addEventListener('pointermove', e => {
+      if (touches.has(e.pointerId)) touches.set(e.pointerId, local(e));
+      if (pinch && touches.size === 2) {
+        const now = pinchState();
+        zoomAt(now.d / pinch.d, now.mx, now.my);
+        panBy(now.mx - pinch.mx, now.my - pinch.my);
+        pinch = now;
+        return;
+      }
       if (down) {
-        const dx = e.clientX - down.x;
-        if (Math.abs(dx) > 4) dragging = true;
+        const dx = e.clientX - down.x, dy = e.clientY - down.y;
+        if (Math.hypot(dx, dy) > 4) dragging = true;
         if (dragging) {
-          rotTarget = clamp(down.r + dx * 0.006, -0.9, 0.9);
+          if (view.zoom > 1.02) panBy(e.clientX - down.px, e.clientY - down.py);   // zoomed in: drag pans
+          else rotTarget = clamp(down.r + dx * 0.006, -0.9, 0.9);                   // otherwise: drag turns the island
+          down.px = e.clientX; down.py = e.clientY;
           el.style.cursor = 'grabbing';
           if (hoverCb) hoverCb(null);
           return;
@@ -2282,6 +2359,8 @@
   // Snapshot for the garden album
   // =========================================================
   function capture(bg) {
+    const saved = { ...view };
+    view.zoom = 1; view.panX = 0; view.panY = 0; applyView();
     renderer.render(scene, camera);
     const src = renderer.domElement;
     // project the island's bounds to find a tight crop
@@ -2300,6 +2379,7 @@
     const g = c.getContext('2d');
     g.fillStyle = bg || '#ece8d8'; g.fillRect(0, 0, W, H);
     g.drawImage(src, x0, y0, x1 - x0, y1 - y0, 0, 0, W, H);
+    Object.assign(view, saved); applyView();
     return c.toDataURL('image/jpeg', 0.82);
   }
 
@@ -2556,7 +2636,7 @@
     serialize, speciesLabel, setMarker, setMood, setRain, setFireflies, setCritters, setExtras, preview,
     spawnButterfly, onHover, capture, screenRect, freeCount: () => freeCells().length,
     get CAPACITY() { return GRID * GRID - RESERVED.size; },
-    setLand, land: () => RING, setSeason, season: () => season,
+    setLand, land: () => RING, setSeason, season: () => season, resetView, onView,
     setScene, scene: () => sceneId,
     SCENES: Object.keys(SCENES).map(id => ({ id, name: SCENES[id].name, tag: SCENES[id].tag,
       swatch: [SCENES[id].grass[1], SCENES[id].blossom[0], SCENES[id].pond.water] })),

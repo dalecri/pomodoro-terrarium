@@ -74,7 +74,7 @@
   body[data-mood="night"] .sky.night { opacity: 1; }
 
   #scene { position: absolute; inset: 0; }
-  #scene canvas { display: block; width: 100%; height: 100%; cursor: grab; touch-action: pan-y; }
+  #scene canvas { display: block; width: 100%; height: 100%; cursor: grab; touch-action: none; }
   .grain {
     position: absolute; inset: 0; pointer-events: none; opacity: 0.05; mix-blend-mode: multiply;
     background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.8'/></svg>");
@@ -365,6 +365,18 @@
   .buy.stored { background: var(--line); color: var(--ink); box-shadow: none; }
   .buy .coin { width: 16px; height: 16px; }
 
+  /* ---------- zoom ---------- */
+  .view-reset {
+    position: absolute; left: 50%; bottom: calc(300px + var(--sab)); transform: translateX(-50%); z-index: 6;
+    display: inline-flex; align-items: center; gap: 6px; padding: 7px 13px; border-radius: 999px; cursor: pointer;
+    border: 1px solid var(--line); background: var(--panel); color: var(--ink); box-shadow: var(--shadow);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    font: 800 12.5px var(--font); animation: fadeIn .2s ease;
+  }
+  .view-reset[hidden] { display: none; }
+  .view-reset svg { width: 14px; height: 14px; }
+  @media (max-width: 980px) { .view-reset { bottom: calc(290px + var(--sab)); } }
+
   /* ---------- first-run walkthrough ---------- */
   .tour { position: fixed; inset: 0; z-index: 60; }
   .tour[hidden] { display: none; }
@@ -622,6 +634,11 @@
       </div>
     </section>
   </div>
+
+  <button class="view-reset" id="viewReset" type="button" hidden>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+    Reset view
+  </button>
 
   <div class="tip" id="tip"></div>
   <div class="toasts" id="toasts"></div>
