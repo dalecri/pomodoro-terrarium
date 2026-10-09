@@ -3,10 +3,23 @@
 // can be rebuilt identically from localStorage on every visit.
 
 (function () {
-  // The island is GRID x GRID grass cells; plants sit on the grass at y = 0.
-  const GRID = 11;
-  const BOX_W = GRID, BOX_D = GRID;
-  const HALF = GRID / 2;
+  // The island starts as BASE x BASE grass cells; plants sit on the grass at y = 0.
+  // Land expansions add rings of cells around it. Cell indices run MINC..MAXC
+  // (negative on new land), so existing plants and scenery never move.
+  const BASE = 11;
+  const HALF = BASE / 2;          // half-size of the original island; scene layouts live inside it
+  let RING = 0, GRID = BASE, EXT = HALF, MINC = 0, MAXC = BASE - 1;
+  function sizeFor(ring) {
+    RING = ring; GRID = BASE + 2 * ring; EXT = GRID / 2; MINC = -ring; MAXC = BASE - 1 + ring;
+  }
+  const fenceAt = () => SC.fence.at - RING;    // the fence always runs along the outer rim
+
+  // ---- Quebec seasons: palette overrides layered on top of the island preset ----
+  let season = 'summer';
+  const MAPLE = [0xc8402a, 0xe0602a, 0xf08a30, 0xb03020, 0xe8a040];
+  const SNOWY = [0xf4f6fb, 0xe6ecf6, 0xdfe6f2, 0xffffff, 0xd2dcec];
+  const SNOW = [0xeef2fa, 0xe4eaf6, 0xf6f8fc, 0xdde4f2];
+  const snowflakes = [];
   const VOX = 1;
   const SOIL_TOP = 0;
   const SKY = 8;                          // ceiling for weather + fireflies
@@ -188,6 +201,8 @@
   function init(el, opts) {
     container = el;
     sceneId = SCENES[(opts || {}).scene] ? opts.scene : 'hollow';
+    sizeFor(Math.max(0, Math.min(2, (opts || {}).land | 0)));
+    season = (opts || {}).season || 'summer';
     scene = new THREE.Scene();
 
     const w = container.clientWidth, h = container.clientHeight;
@@ -234,10 +249,10 @@
     critterGroup = new THREE.Group();
     terrariumGroup.add(plantsGroup, fxGroup, critterGroup);
 
+    buildRain();          // before the island: winter turns raindrops into snow
     setScene(sceneId);
     buildDust();
     buildStars();
-    buildRain();
     positionCamera();
 
     window.addEventListener('resize', onResize);
@@ -247,10 +262,13 @@
 
   // Orthographic fit: frame the island in the open space between the side
   // panels and above the timer card.
-  const FIT_PTS = [];
-  [-1, 1].forEach(sx => [-1, 1].forEach(sz => {
-    FIT_PTS.push(new THREE.Vector3(sx * HALF, -2.7, sz * HALF), new THREE.Vector3(sx * HALF, 6.2, sz * HALF));
-  }));
+  function fitPoints() {
+    const pts = [];
+    [-1, 1].forEach(sx => [-1, 1].forEach(sz => {
+      pts.push(new THREE.Vector3(sx * EXT, -2.7, sz * EXT), new THREE.Vector3(sx * EXT, 6.2, sz * EXT));
+    }));
+    return pts;
+  }
   function positionCamera() {
     const W = container.clientWidth, H = container.clientHeight;
     const wide = W > 980;
@@ -260,7 +278,7 @@
     const aw = Math.max(W * 0.36, W - 2 * side), ah = Math.max(H * 0.3, H - top - bottom);
     camera.updateMatrixWorld();
     let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
-    FIT_PTS.forEach(pt => {
+    fitPoints().forEach(pt => {
       const v = pt.clone().applyMatrix4(camera.matrixWorldInverse);
       x0 = Math.min(x0, v.x); x1 = Math.max(x1, v.x); y0 = Math.min(y0, v.y); y1 = Math.max(y1, v.y);
     });
@@ -304,13 +322,21 @@
   function setScene(id) {
     sceneId = SCENES[id] ? id : 'hollow';
     SC = SCENES[sceneId];
-    COL.blossom = SC.blossom; COL.trunk = SC.trunk; COL.grass = SC.grass;
+    COL.blossom = season === 'fall' ? MAPLE : season === 'winter' ? SNOWY : SC.blossom;
+    COL.treeAccent = season === 'fall' ? 0xd8a040 : season === 'winter' ? 0xffffff : 0x7cc47a;
+    COL.trunk = SC.trunk; COL.grass = season === 'winter' ? SNOW : SC.grass;
+    rain.drops.forEach(d => { d.mesh.scale.y = season === 'winter' ? 0.22 : 1; });
+    rain.mat.color.setHex(season === 'winter' ? 0xffffff : 0xb8d4ff);
+    const k = EXT + 6;
+    Object.assign(L.key.shadow.camera, { left: -k, right: k, top: k, bottom: -k });
+    L.key.shadow.camera.updateProjectionMatrix();
     computeReserved();
     if (sceneGroup) {
       terrariumGroup.remove(sceneGroup);
       sceneGroup.traverse(o => { if (o.isInstancedMesh) o.material.dispose(); });
     }
     smoke.forEach(sm => fxGroup.remove(sm.m)); smoke.length = 0;
+    snowflakes.forEach(f => fxGroup.remove(f.m)); snowflakes.length = 0;
     decorTrees.length = 0; sceneAnims.length = 0;
     sceneGroup = new THREE.Group();
     terrariumGroup.add(sceneGroup);
@@ -328,7 +354,7 @@
       const k = pl.gx + ',' + pl.gz;
       if (!RESERVED.has(k) && !taken.has(k)) { taken.add(k); return; }
       let best = null, bd = 1e9;
-      for (let x = 0; x < GRID; x++) for (let z = 0; z < GRID; z++) {
+      for (let x = MINC; x <= MAXC; x++) for (let z = MINC; z <= MAXC; z++) {
         const c = x + ',' + z;
         if (RESERVED.has(c) || taken.has(c) || plants.some(o => o !== pl && o.gx === x && o.gz === z)) continue;
         const d = (x - pl.gx) ** 2 + (z - pl.gz) ** 2;
@@ -341,18 +367,46 @@
     });
   }
 
+  function setLand(ring) {
+    sizeFor(Math.max(0, Math.min(2, ring | 0)));
+    setScene(sceneId);
+    positionCamera();
+    // a little celebration around the new rim
+    for (let i = 0; i < 4; i++) {
+      const a = i * Math.PI / 2 + Math.PI / 4;
+      burstAt(new THREE.Vector3(Math.cos(a) * EXT * 0.9, 0.3, Math.sin(a) * EXT * 0.9), 18, null, 0.8);
+    }
+  }
+
+  function setSeason(name) {
+    if (!['spring', 'summer', 'fall', 'winter'].includes(name) || name === season) return;
+    season = name;
+    setScene(sceneId);
+    load(serialize());          // regrow plants so trees pick up the season's colors
+  }
+
+  function lerpHex(a, b, t) { return new THREE.Color(a).lerp(new THREE.Color(b), t).getHex(); }
+
   function buildIsland() {
     const r = mulberry32(42);
+    const area = (GRID / BASE) ** 2;
+    const grassFor = () => {
+      const g = pick(SC.grass, r);
+      if (season === 'winter') return r() < 0.88 ? pick(SNOW, r) : lerpHex(g, 0xdde4f2, 0.62);   // grass barely peeking through
+      if (season === 'fall') return lerpHex(g, 0x6a4a66, 0.16);
+      if (season === 'spring') return lerpHex(g, 0x4a6e8e, 0.1);
+      return g;
+    };
     const ground = [];
-    for (let x = 0; x < GRID; x++) for (let z = 0; z < GRID; z++) {
+    for (let x = MINC; x <= MAXC; x++) for (let z = MINC; z <= MAXC; z++) {
       const X = cellX(x), Z = cellZ(z);
       if (inPond(x, z)) {
         ground.push({ x: X, y: -1.7, z: Z, w: 1, h: 1.8, d: 1, hex: pick(COL.dirt, r) });
         continue;
       }
-      const edge = x === 0 || z === 0 || x === GRID - 1 || z === GRID - 1;
+      const edge = x === MINC || z === MINC || x === MAXC || z === MAXC;
       const dip = edge && r() < 0.14 ? -0.1 : 0;     // hand-made wobble on the rim
-      ground.push({ x: X, y: dip - 0.2, z: Z, w: 1, h: 0.4, d: 1, hex: pick(SC.grass, r) });
+      ground.push({ x: X, y: dip - 0.2, z: Z, w: 1, h: 0.4, d: 1, hex: grassFor() });
       ground.push({ x: X, y: -1.0, z: Z, w: 1, h: 1.2, d: 1, hex: pick(COL.dirt, r) });
       ground.push({ x: X, y: -2.1, z: Z, w: 1, h: 1.0, d: 1, hex: pick(COL.deep, r) });
     }
@@ -360,14 +414,21 @@
 
     // grass texture: little tufts
     const tufts = [], H0 = SC.home;
-    for (let i = 0; i < 90; i++) {
-      const x = R(r, -HALF + 0.15, HALF - 0.15), z = R(r, -HALF + 0.15, HALF - 0.15);
+    for (let i = 0; i < 90 * area; i++) {
+      const x = R(r, -EXT + 0.15, EXT - 0.15), z = R(r, -EXT + 0.15, EXT - 0.15);
       const gx = Math.floor(x + HALF), gz = Math.floor(z + HALF);
       if (inPond(gx, gz) || (Math.abs(gx - H0.x) <= 1 && Math.abs(gz - H0.z) <= 1)) continue;
       const tall = r() < 0.5;
-      tufts.push({ x, y: tall ? 0.09 : 0.03, z, w: 0.12, h: tall ? 0.18 : 0.06, d: tall ? 0.12 : 0.3, hex: pick(SC.tuft, r), ry: R(r, 0, 3) });
+      if (season === 'fall' && r() < 0.6) {          // fallen maple leaves
+        tufts.push({ x, y: 0.015, z, w: 0.18, h: 0.03, d: 0.13, hex: pick(MAPLE, r), ry: R(r, 0, 3) });
+        continue;
+      }
+      if (season === 'winter' && r() < 0.6) continue;  // most tufts are under the snow
+      tufts.push({ x, y: tall ? 0.09 : 0.03, z, w: 0.12, h: tall ? 0.18 : 0.06, d: tall ? 0.12 : 0.3,
+        hex: season === 'winter' ? pick([0xffffff, 0xe8eef8], r) : pick(SC.tuft, r), ry: R(r, 0, 3) });
     }
     instanced(tufts);
+    if (season === 'winter') buildSnowfall();
 
     buildPond(r);
     home = HOMES[SC.home.type](cellX(SC.home.x), cellZ(SC.home.z));
@@ -383,7 +444,10 @@
     const bed = new THREE.Mesh(geo(3, 0.1, 3), mat(P.bed));
     bed.position.set(cx, -0.78, cz); bed.receiveShadow = true;
     sceneGroup.add(bed);
-    const water = new THREE.Mesh(geo(3, 0.06, 3), new THREE.MeshLambertMaterial({ color: P.water, transparent: true, opacity: P.opacity, depthWrite: false }));
+    const frozen = season === 'winter';
+    const water = new THREE.Mesh(geo(3, 0.06, 3), new THREE.MeshLambertMaterial(frozen
+      ? { color: 0xcfe2ef, transparent: true, opacity: 0.94 }
+      : { color: P.water, transparent: true, opacity: P.opacity, depthWrite: false }));
     water.position.set(cx, -0.3, cz); water.receiveShadow = true;
     water.renderOrder = 2;
     sceneGroup.add(water);
@@ -391,18 +455,19 @@
     [[cx - 0.6, cz - 0.6], [cx + 0.7, cz + 0.7], [cx + 0.8, cz - 0.9]].forEach(([x, z], i) => {
       const pad = new THREE.Mesh(geo(i === 2 ? 0.38 : 0.6, 0.05, i === 2 ? 0.38 : 0.6), mat(0x5a8a4a));
       pad.position.set(x, -0.25, z); pad.rotation.y = R(r, 0, 1);
+      if (frozen) return;            // lily pads sleep under the ice
       sceneGroup.add(pad);
       if (i === 2) { const f = new THREE.Mesh(geo(0.14, 0.12, 0.14), mat(pick(SC.flowers, r))); f.position.set(x, -0.17, z); sceneGroup.add(f); }
     });
     // reeds poking out of the water
     [[-1.3, -1.3], [-1.25, -1.0], [-0.95, -1.35], [1.3, 1.2], [1.25, 0.9], [-1.3, 1.3]].forEach(([dx, dz]) => {
       const h = R(r, 0.6, 1.3);
-      const reed = new THREE.Mesh(geo(0.08, h, 0.08), mat(pick(P.reeds, r)));
-      reed.position.set(cx + dx, -0.3 + h / 2, cz + dz); reed.castShadow = true;
+      const reed = new THREE.Mesh(geo(0.08, frozen ? h * 0.5 : h, 0.08), mat(frozen ? 0x9a8a78 : season === 'fall' ? pick(MAPLE, r) : pick(P.reeds, r)));
+      reed.position.set(cx + dx, frozen ? -0.3 + h / 4 : -0.3 + h / 2, cz + dz); reed.castShadow = true;
       sceneGroup.add(reed);
     });
     pondInfo.pads = [new THREE.Vector3(cx - 0.6, -0.22, cz - 0.6), new THREE.Vector3(cx + 0.7, -0.22, cz + 0.7)];
-    if (P.swimmer === 'ducks') swimmers(cx, cz, 2, () => {
+    if (P.swimmer === 'ducks' && !frozen) swimmers(cx, cz, 2, () => {
       const g = new THREE.Group();
       part(g, 0xffd84a, 0.26, 0.18, 0.34, 0, 0.09, 0);
       part(g, 0xffd84a, 0.17, 0.17, 0.17, 0, 0.26, 0.13);
@@ -412,7 +477,7 @@
       part(g, 0xf0c03a, 0.1, 0.08, 0.1, 0, 0.16, -0.18);
       return { g, y: -0.28, rad: 0.75, speed: 0.35, bob: 0.02 };
     });
-    if (P.swimmer === 'koi') swimmers(cx, cz, 3, i => {
+    if (P.swimmer === 'koi' && !frozen) swimmers(cx, cz, 3, i => {
       const g = new THREE.Group();
       const main = [0xff8a3a, 0xfff4ea, 0xff6a3a][i];
       part(g, main, 0.12, 0.08, 0.36, 0, 0, 0);
@@ -458,8 +523,12 @@
       part(g, 0x6a4a34, 0.2, 0.16, 0.86, W / 2 + 0.13, 0.76, 0);
       SC.flowers.concat(SC.flowers).slice(0, 4).forEach((c, i) => part(g, c, 0.13, 0.13, 0.13, W / 2 + 0.15, 0.9, -0.3 + i * 0.2));
       let k = 0;
-      for (; k < 6; k++) part(g, k % 2 ? 0x4e3c32 : 0x5a463a, W + 0.5, 0.26, D + 0.6 - k * 0.55, 0, H + 0.13 + k * 0.26, 0);
-      const roofTop = H + k * 0.26;
+      for (; k < 6; k++) {
+        part(g, k % 2 ? 0x4e3c32 : 0x5a463a, W + 0.5, 0.26, D + 0.6 - k * 0.55, 0, H + 0.13 + k * 0.26, 0);
+        if (season === 'winter') part(g, pick(SNOW), W + 0.54, 0.08, D + 0.64 - k * 0.55, 0, H + 0.3 + k * 0.26, 0);
+      }
+      const roofTop = H + k * 0.26 + (season === 'winter' ? 0.06 : 0);
+      if (season === 'winter') part(g, 0xffffff, 0.58, 0.1, 0.58, -0.75, H + 1.77, -0.55);
       part(g, 0x7a7690, 0.46, 1.1, 0.46, -0.75, H + 1.1, -0.55);
       part(g, 0x6a6680, 0.56, 0.12, 0.56, -0.75, H + 1.66, -0.55);
       part(g, 0x8a86a0, 0.9, 0.12, 0.42, 0, 0.06, D / 2 + 0.26);
@@ -491,7 +560,11 @@
       win.position.set(1.75 / 2 + 0.09, 2.3, 0);
       g.add(win);
       // stepped red roof
-      for (let i = 0; i < 4; i++) part(g, i % 2 ? 0x9a4a3a : 0x8a3e32, 1.7 - i * 0.4, 0.26, 1.7 - i * 0.4, 0, y + 0.13 + i * 0.26, 0);
+      for (let i = 0; i < 4; i++) {
+        part(g, i % 2 ? 0x9a4a3a : 0x8a3e32, 1.7 - i * 0.4, 0.26, 1.7 - i * 0.4, 0, y + 0.13 + i * 0.26, 0);
+        if (season === 'winter') part(g, pick(SNOW), 1.74 - i * 0.4, 0.08, 1.74 - i * 0.4, 0, y + 0.3 + i * 0.26, 0);
+      }
+      if (season === 'winter') part(g, 0xf4f6fb, 3.02, 0.06, 3.02, 0, 0.33, 0);
       part(g, 0xd8b060, 0.12, 0.3, 0.12, 0, y + 1.2, 0);
       // sails on the front face, turning slowly
       const sails = new THREE.Group();
@@ -537,6 +610,10 @@
         roof.rotation.x = sz * 0.5;
         roof.renderOrder = 3;
         g.add(roof);
+        if (season === 'winter') {
+          const frost = part(g, 0xf4f6fb, W + 0.12, 0.06, D / 2 + 0.2, 0, 2.13, sz * D / 4);
+          frost.rotation.x = sz * 0.5;
+        }
         for (const sx of [-1, 0, 1]) {
           const raf = part(g, frame, 0.07, 0.06, D / 2 + 0.22, sx * W / 2, 2.08, sz * D / 4);
           raf.rotation.x = sz * 0.5;
@@ -567,13 +644,14 @@
   function buildFence() {
     const F = SC.fence, len = F.to - F.from;
     const at = (u, y, w, h, d) => F.axis === 'z'
-      ? part(sceneGroup, 0x6a4a34, w, h, d, F.at, y, u)
-      : part(sceneGroup, 0x6a4a34, d, h, w, u, y, F.at);
+      ? part(sceneGroup, 0x6a4a34, w, h, d, fenceAt(), y, u)
+      : part(sceneGroup, 0x6a4a34, d, h, w, u, y, fenceAt());
     for (let u = F.from; u <= F.to + 0.01; u += 1) at(u, 0.36, 0.14, 0.72, 0.14);
     [0.56, 0.28].forEach(y => {
       const rail = at((F.from + F.to) / 2, y, 0.08, 0.08, len + 0.1);
       rail.material = mat(0x7a5a40);
     });
+    if (season === 'winter') at((F.from + F.to) / 2, 0.62, 0.1, 0.05, len + 0.1).material = mat(0xf4f6fb);
   }
 
   const PROPS = {
@@ -619,7 +697,11 @@
   };
 
   function buildProps(r) {
-    SC.props.forEach(([kind, gx, gz]) => PROPS[kind](cellX(gx), cellZ(gz)));
+    SC.props.forEach(([kind, gx, gz]) => {
+      PROPS[kind](cellX(gx), cellZ(gz));
+      const capAt = { barrel: [0.6, 0.77], crate: [0.6, 0.62], hay: [0.6, 0.94], well: [0.9, 1.5], bench: [0.85, 0.4] }[kind];
+      if (season === 'winter' && capAt) part(sceneGroup, 0xf4f6fb, capAt[0], 0.07, capAt[0] * 0.7, cellX(gx), capAt[1], cellZ(gz));
+    });
     // stepping stones from the front door
     SC.path.forEach(([gx, gz]) => {
       [[-0.18, -0.15], [0.2, 0.18]].forEach(([dx, dz]) => {
@@ -632,12 +714,15 @@
 
   // flowers, glowing mushrooms, little rocks at cell corners
   function buildDecor(r) {
-    for (let i = 0; i < 46; i++) {
-      const gx = (r() * GRID) | 0, gz = (r() * GRID) | 0;
+    const n = 46 * (GRID / BASE) ** 2 * (season === 'spring' ? 1.5 : 1);
+    for (let i = 0; i < n; i++) {
+      const gx = MINC + ((r() * GRID) | 0), gz = MINC + ((r() * GRID) | 0);
       if (RESERVED.has(gx + ',' + gz)) continue;
       const x = cellX(gx) + (r() < 0.5 ? -0.42 : 0.42), z = cellZ(gz) + (r() < 0.5 ? -0.42 : 0.42);
       const kind = r();
-      if (kind < 0.45) {
+      if (season === 'winter' && kind < 0.45) {       // little snow drifts instead of flowers
+        part(sceneGroup, pick(SNOW, r), R(r, 0.2, 0.34), 0.1, R(r, 0.18, 0.3), x, 0.05, z);
+      } else if (kind < (season === 'spring' ? 0.6 : 0.45)) {
         part(sceneGroup, 0x4f7f5a, 0.04, 0.2, 0.04, x, 0.1, z);
         part(sceneGroup, pick(SC.flowers, r), 0.12, 0.12, 0.12, x, 0.24, z);
       } else if (kind < 0.8) {
@@ -648,6 +733,18 @@
       } else {
         part(sceneGroup, pick(COL.stone, r), 0.2, 0.12, 0.16, x, 0.06, z).rotation.y = R(r, 0, 2);
       }
+    }
+  }
+
+  // gentle snowfall over the whole island all winter
+  function buildSnowfall() {
+    const m = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9 });
+    const n = Math.round(170 * (GRID / BASE) ** 2);
+    for (let i = 0; i < n; i++) {
+      const f = new THREE.Mesh(geo(0.07, 0.07, 0.07), m);
+      f.position.set(rand(-EXT, EXT), rand(0, SKY), rand(-EXT, EXT));
+      fxGroup.add(f);
+      snowflakes.push({ m: f, v: rand(0.35, 0.7), ph: Math.random() * 6 });
     }
   }
 
@@ -668,7 +765,7 @@
     const m = new THREE.MeshBasicMaterial({ color: 0xffeef8, transparent: true, opacity: 0.45 });
     for (let i = 0; i < 40; i++) {
       const s = new THREE.Mesh(geo(0.05, 0.05, 0.05), m);
-      s.position.set(rand(-HALF, HALF), rand(0.6, 5), rand(-HALF, HALF));
+      s.position.set(rand(-EXT, EXT), rand(0.6, 5), rand(-EXT, EXT));
       fxGroup.add(s);
       particles.push({ mesh: s, base: s.position.clone(), phase: Math.random() * 6.28, speed: rand(0.2, 0.5) });
     }
@@ -922,7 +1019,7 @@
         const y = yAt(p.h - 1) + 0.7;
         for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) {
           if (Math.abs(dx) + Math.abs(dz) === 2 && r() < 0.35) continue;
-          add(p, r() < 0.12 ? 0x7cc47a : pick(COL.blossom, r), 0.88, 0.8, 0.88, dx * 0.82, y + R(r, -0.1, 0.1), dz * 0.82);
+          add(p, r() < 0.12 ? (COL.treeAccent || 0x7cc47a) : pick(COL.blossom, r), 0.88, 0.8, 0.88, dx * 0.82, y + R(r, -0.1, 0.1), dz * 0.82);
         }
         [[0, 0], [0.75, 0], [-0.75, 0], [0, 0.75], [0, -0.75]].forEach(([x, z]) =>
           add(p, pick(COL.blossom, r), 0.82, 0.72, 0.82, x, y + 0.72, z));
@@ -1127,7 +1224,7 @@
   }
   function freeCells() {
     const occ = occupied(), out = [];
-    for (let x = 0; x < BOX_W; x++) for (let z = 0; z < BOX_D; z++) {
+    for (let x = MINC; x <= MAXC; x++) for (let z = MINC; z <= MAXC; z++) {
       const k = x + ',' + z;
       if (!occ.has(k) && !RESERVED.has(k)) out.push({ x, z });
     }
@@ -1137,10 +1234,10 @@
   // tall things go to the back, small things to the front, trees away from the glass
   function chooseCell(kind, h) {
     let cells = freeCells();
-    if (kind === 'tree') cells = cells.filter(c => c.x >= 1 && c.x <= GRID - 2 && c.z >= 1 && c.z <= GRID - 2);
+    if (kind === 'tree') cells = cells.filter(c => c.x >= MINC + 1 && c.x <= MAXC - 1 && c.z >= MINC + 1 && c.z <= MAXC - 1);
     if (!cells.length) return null;
     const weights = cells.map(c => {
-      const back = 1 - (c.x + c.z) / (2 * (GRID - 1));      // far corner of the iso view
+      const back = 1 - (c.x + c.z - 2 * MINC) / (2 * (GRID - 1));      // far corner of the iso view
       return h >= 4 ? 0.7 + back * 0.8 : 0.7 + (1 - back) * 0.8;   // gentle depth bias; the island is roomy
     });
     let t = Math.random() * weights.reduce((a, b) => a + b, 0);
@@ -1182,9 +1279,9 @@
     (list || []).forEach((d, i) => {
       // plants from an older layout (or the jar) can land on scenery: move them to a free plot
       let k = d.gx + ',' + d.gz;
-      if (d.gx < 0 || d.gz < 0 || d.gx >= GRID || d.gz >= GRID || RESERVED.has(k) || taken.has(k)) {
+      if (d.gx < MINC || d.gz < MINC || d.gx > MAXC || d.gz > MAXC || RESERVED.has(k) || taken.has(k)) {
         const free = [];
-        for (let x = 0; x < GRID; x++) for (let z = 0; z < GRID; z++) {
+        for (let x = MINC; x <= MAXC; x++) for (let z = MINC; z <= MAXC; z++) {
           const c = x + ',' + z;
           if (!RESERVED.has(c) && !taken.has(c) && !(list || []).some(o => o !== d && o.gx + ',' + o.gz === c)) free.push({ x, z });
         }
@@ -1335,7 +1432,7 @@
     part(g, 0xa8652e, 0.36, 0.32, 0.36, -0.1, 0.46, 0);
     part(g, 0xf0c47a, 0.14, 0.14, 0.37, -0.1, 0.46, 0);
     g.scale.setScalar(0.7);
-    g.position.set(1, 0, HALF - 0.22);              // crawls along the front rim
+    g.position.set(1, 0, EXT - 0.22);               // crawls along the front rim
     return { g, dir: 1, speed: 0.14, pause: 0 };
   }
 
@@ -1347,7 +1444,7 @@
     part(g, 0x1c1c22, 0.07, 0.03, 0.07, 0.06, 0.15, -0.06);
     part(g, 0x1c1c22, 0.02, 0.03, 0.24, 0, 0.15, 0);
     const F = SC.fence, mid = (F.from + F.to) / 2;   // walks the fence rail
-    if (F.axis === 'z') g.position.set(F.at, 0.6, mid); else g.position.set(mid, 0.6, F.at);
+    if (F.axis === 'z') g.position.set(fenceAt(), 0.6, mid); else g.position.set(mid, 0.6, fenceAt());
     return { g, dir: 1, speed: 0.35, pause: 2, t: 0, axis: F.axis, lo: F.from + 0.3, hi: F.to - 0.3 };
   }
 
@@ -1414,13 +1511,13 @@
         e.target = new THREE.Vector3(0, 1.5, 0); e.retarget = 0; e.vis = 1;
       },
       update(e, dt, t) {
-        e.vis += ((moodName === 'night' ? 0 : 1) - e.vis) * (1 - Math.exp(-dt * 2));
+        e.vis += ((moodName === 'night' || season === 'winter' ? 0 : 1) - e.vis) * (1 - Math.exp(-dt * 2));
         e.g.scale.setScalar(Math.max(0.001, e.vis));
         e.retarget -= dt;
         if (e.retarget <= 0) {
           const blooms = plants.filter(p => p.crownBuilt && p.state === 'alive');
           if (blooms.length && Math.random() < 0.8) e.target.copy(plantTop(pick(blooms))).add(new THREE.Vector3(0.15, 0.25, 0.2));
-          else e.target.set(rand(-4.5, 4.5), rand(0.6, 3.5), rand(-4.5, 4.5));
+          else e.target.set(rand(-EXT + 1, EXT - 1), rand(0.6, 3.5), rand(-EXT + 1, EXT - 1));
           e.retarget = rand(2.5, 5);
         }
         const prev = e.g.position.clone();
@@ -1564,7 +1661,7 @@
       },
       place(e) {
         const F = SC.fence;                            // on the end fence post
-        if (F.axis === 'z') e.g.position.set(F.at, 0.73, F.from); else e.g.position.set(F.from, 0.73, F.at);
+        if (F.axis === 'z') e.g.position.set(fenceAt(), 0.73, F.from); else e.g.position.set(F.from, 0.73, fenceAt());
         e.g.rotation.y = Math.PI / 4;
         e.blinkIn = 2;
       },
@@ -1733,6 +1830,167 @@
     },
   };
 
+  // =========================================================
+  // The family cats: voxel coats painted by pattern, roaming the island
+  // =========================================================
+  const CATS = {
+    diego:  { name: 'Diego', breed: 'Rosetted Bengal', base: 0xd9a04e, belly: 0xf2dcae, dark: 0x4a2c18, mid: 0xa8682e, eye: 0x8ccf5a, pattern: 'rosettes', legs: 3, ears: 2, len: 10, speed: 0.55 },
+    ramses: { name: 'Ramses', breed: 'Spotted Savannah', base: 0xa9a59d, belly: 0xd6d2c8, dark: 0x242222, mid: 0x5e5a56, eye: 0xd8b040, pattern: 'spots', legs: 5, ears: 3, len: 11, speed: 0.75 },
+    cali:   { name: 'Cali', breed: 'Calico shorthair', base: 0xfaf6ee, belly: 0xffffff, dark: 0x2e2622, mid: 0xe8923a, eye: 0xe0a030, pattern: 'calico', legs: 3, ears: 2, len: 9, speed: 0.5 },
+    neo:    { name: 'Neo', breed: 'White shorthair with grey tabby patches', base: 0xf6f6f4, belly: 0xffffff, dark: 0x5c5c64, mid: 0x9a9aa2, eye: 0x8ccf5a, pattern: 'blotches', legs: 3, ears: 2, len: 10, speed: 0.5 },
+  };
+  function hash3(a, b, c, seed) {
+    let n = Math.imul(a, 374761393) ^ Math.imul(b, 668265263) ^ Math.imul(c, 1274126177) ^ seed;
+    n = Math.imul(n ^ (n >>> 13), 1103515245);
+    return ((n ^ (n >>> 16)) >>> 0) / 4294967296;
+  }
+  // coat color of the voxel at (i across, j up, k along); j === 0 is the belly
+  function coat(c, i, j, k, seed) {
+    const cell = (n, size) => Math.floor(n / size);
+    if (c.pattern === 'rosettes' || c.pattern === 'spots') {
+      if (j === 0) return c.belly;
+      // markings live on a 2D surface grid (k along the body, a around it), sparse enough for the coat to show
+      const a = i + 2 * j, ck = cell(k, 3), ca = cell(a, 3);
+      if (hash3(ck, ca, 7, seed) > (c.pattern === 'rosettes' ? 0.55 : 0.6)) return c.base;
+      const dk = k - (ck * 3 + 1), da = a - (ca * 3 + 1);
+      if (dk === 0 && da === 0) return c.pattern === 'rosettes' ? c.mid : c.dark;          // rosette center / spot
+      if (Math.abs(dk) + Math.abs(da) === 1) return hash3(k, a, 3, seed) < (c.pattern === 'rosettes' ? 0.65 : 0.3) ? c.dark : c.base;
+      return c.base;
+    }
+    if (c.pattern === 'calico') {
+      if (j <= 1) return c.base;                     // white chest, belly and legs
+      const h = hash3(cell(i, 4), cell(j, 3), cell(k, 4), seed);
+      return h < 0.32 ? c.mid : h < 0.56 ? c.dark : c.base;
+    }
+    if (j === 0) return c.belly;                     // blotches: big grey patches with darker stripes
+    if (hash3(cell(i, 4), cell(j, 4), cell(k, 4), seed) > 0.5) return c.base;
+    return k % 2 === 0 ? c.dark : c.mid;
+  }
+  function instancedVox(list, size) {
+    const im = new THREE.InstancedMesh(geo(size, size, size), new THREE.MeshLambertMaterial({ color: 0xffffff }), list.length);
+    const m4 = new THREE.Matrix4(), col = new THREE.Color();
+    list.forEach((v, i) => { m4.makeTranslation(v.x, v.y, v.z); im.setMatrixAt(i, m4); im.setColorAt(i, col.setHex(v.hex)); });
+    im.castShadow = true; im.receiveShadow = true;
+    return im;
+  }
+  const CV = 0.085;
+  function catModel(key, preview) {
+    const c = CATS[key], seed = key.length * 977 + key.charCodeAt(0) * 31;
+    const g = new THREE.Group();
+    const W = 4, H = 4, L = c.len, legH = c.legs * CV;
+    const put = (list, i, j, k, hex, ox, oy, oz) => list.push({ x: ox + i * CV, y: oy + j * CV, z: oz + k * CV, hex });
+    // body (surface voxels only)
+    const bv = [], bx = -(W - 1) / 2 * CV, by = legH + CV / 2, bz = -(L - 1) / 2 * CV;
+    for (let i = 0; i < W; i++) for (let j = 0; j < H; j++) for (let k = 0; k < L; k++) {
+      if (i > 0 && i < W - 1 && j > 0 && j < H - 1 && k > 0 && k < L - 1) continue;
+      put(bv, i, j, k, coat(c, i, j, k, seed), bx, by, bz);
+    }
+    g.add(instancedVox(bv, CV));
+    // head, in its own group so it can look around
+    const head = new THREE.Group();
+    head.position.set(0, legH + (H - 0.5) * CV, (L / 2 - 0.6) * CV);
+    const hv = [], HW = 5, HH = 4, HD = 4, hx = -(HW - 1) / 2 * CV;
+    for (let i = 0; i < HW; i++) for (let j = 0; j < HH; j++) for (let k = 0; k < HD; k++) {
+      if (i > 0 && i < HW - 1 && j > 0 && j < HH - 1 && k > 0 && k < HD - 1) continue;
+      let hex = coat(c, i + 7, j + 2, k + 30, seed);
+      if (j <= 1 && k === HD - 1 && i >= 1 && i <= 3 && c.pattern !== 'calico') hex = c.belly;   // muzzle
+      put(hv, i, j, k, hex, hx, 0, 0);
+    }
+    [0, HW - 1].forEach(i => {
+      for (let e = 0; e < c.ears; e++) put(hv, i, HH + e, 1, e === c.ears - 1 && c.pattern !== 'calico' ? c.dark : coat(c, i + 7, HH + e + 2, 31, seed), hx, 0, 0);
+      put(hv, i, HH, 2, 0xf0a8b0, hx, 0, 0);   // pink inner ear
+    });
+    head.add(instancedVox(hv, CV));
+    const fz = (HD - 0.5) * CV + 0.012;
+    [1, 3].forEach(i => {
+      const eye = new THREE.Mesh(geo(CV * 0.9, CV * 0.9, 0.02), mat(c.eye)); eye.position.set(hx + i * CV, 2 * CV, fz); head.add(eye);
+      const pupil = new THREE.Mesh(geo(CV * 0.35, CV * 0.8, 0.02), mat(0x141014)); pupil.position.set(hx + i * CV, 2 * CV, fz + 0.012); head.add(pupil);
+    });
+    const nose = new THREE.Mesh(geo(CV * 0.8, CV * 0.55, 0.02), mat(0xe88a9a)); nose.position.set(0, CV + 0.01, fz); head.add(nose);
+    g.add(head);
+    // legs pivot at the hip so they can swing
+    const legs = [];
+    [[-1, 1], [1, 1], [-1, -1], [1, -1]].forEach(([sx, sz], n) => {
+      const pv = new THREE.Group();
+      pv.position.set(sx * CV * 1.2, legH, sz * (L / 2 - 1.2) * CV);
+      const legHex = c.pattern === 'spots' && n % 2 ? c.mid : c.pattern === 'calico' || c.pattern === 'blotches' ? 0xffffff : c.base;
+      const leg = new THREE.Mesh(geo(CV * 1.3, legH, CV * 1.3), mat(legHex));
+      leg.position.y = -legH / 2; leg.castShadow = true;
+      pv.add(leg);
+      const paw = new THREE.Mesh(geo(CV * 1.4, CV * 0.6, CV * 1.6), mat(c.pattern === 'rosettes' ? c.belly : c.pattern === 'spots' ? c.belly : 0xffffff));
+      paw.position.set(0, -legH + CV * 0.3, CV * 0.15);
+      pv.add(paw);
+      g.add(pv); legs.push(pv);
+    });
+    // tail
+    const tail = new THREE.Group();
+    tail.position.set(0, legH + (H - 1) * CV, -(L / 2) * CV);
+    const tv = [];
+    for (let t = 0; t < 7; t++) {
+      const hex = c.pattern === 'rosettes' ? (t === 6 ? c.dark : t % 3 === 2 ? c.mid : c.base)
+        : c.pattern === 'spots' ? (t % 2 || t === 6 ? c.dark : c.base)
+        : c.pattern === 'calico' ? (t < 3 ? c.mid : c.dark) : (t % 2 ? c.dark : c.mid);
+      tv.push({ x: 0, y: t * CV * 0.55, z: -t * CV * 0.8, hex });
+    }
+    tail.add(instancedVox(tv, CV));
+    g.add(tail);
+    g.scale.setScalar(preview ? 1 : 0.8);
+    if (preview) g.rotation.y = 0.9;             // three-quarter view shows off the coat
+    g.userData.catKey = key;
+    return { g, head, legs, tail, spec: c, legH };
+  }
+
+  // somewhere comfy on the grass: not in the pond, not inside the house
+  function catTarget() {
+    for (let tries = 0; tries < 30; tries++) {
+      const gx = MINC + ((Math.random() * GRID) | 0), gz = MINC + ((Math.random() * GRID) | 0);
+      if (inPond(gx, gz) || (Math.abs(gx - SC.home.x) <= 1 && Math.abs(gz - SC.home.z) <= 1)) continue;
+      return new THREE.Vector3(cellX(gx) + rand(-0.3, 0.3), 0, cellZ(gz) + rand(-0.3, 0.3));
+    }
+    return new THREE.Vector3(0, 0, 0);
+  }
+  Object.keys(CATS).forEach(key => {
+    EXTRAS['cat_' + key] = {
+      build(preview) { return catModel(key, preview); },
+      place(e) {
+        e.g.position.copy(catTarget());
+        e.g.rotation.y = rand(0, Math.PI * 2);
+        e.state = 'sit'; e.timer = rand(1, 4); e.ph = Math.random() * 6; e.down = 0;
+      },
+      update(e, dt, t) { stepCat(e, dt, t); },
+    };
+  });
+  function stepCat(e, dt, t) {
+    const night = moodName === 'night';
+    e.timer -= dt;
+    if (e.state === 'walk') {
+      const p = e.g.position, d = e.target.clone().sub(p);
+      d.y = 0;
+      const dist = d.length();
+      if (dist < 0.08) {
+        e.state = Math.random() < (night ? 0.7 : 0.12) ? 'nap' : Math.random() < 0.35 ? 'groom' : 'sit';
+        e.timer = e.state === 'nap' ? rand(12, 25) : rand(3, 8);
+      } else {
+        const diff = ((Math.atan2(d.x, d.z) - e.g.rotation.y + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
+        e.g.rotation.y += diff * Math.min(1, dt * 6);
+        p.addScaledVector(d.normalize(), Math.min(dist, e.spec.speed * dt));
+      }
+    } else if (e.timer <= 0) {
+      if (night && e.state !== 'nap' && Math.random() < 0.6) { e.state = 'nap'; e.timer = rand(12, 25); }
+      else { e.state = 'walk'; e.target = catTarget(); }
+    }
+    const walking = e.state === 'walk';
+    const sw = walking ? Math.sin(t * e.spec.speed * 18) * 0.6 : 0;
+    e.down += ((e.state === 'nap' ? 1 : 0) - e.down) * (1 - Math.exp(-dt * 3));
+    e.legs.forEach((l, i) => { l.rotation.x = i === 0 || i === 3 ? sw : -sw; l.scale.y = 1 - e.down * 0.8; });
+    e.g.position.y = -e.down * e.legH * 0.64 + (walking ? Math.abs(Math.sin(t * e.spec.speed * 18)) * 0.012 : 0);
+    // look around while sitting, dip to groom, tuck in for a nap
+    e.head.rotation.y = e.state === 'sit' ? Math.sin(t * 0.6 + e.ph) * 0.6 : 0;
+    e.head.rotation.x = e.state === 'groom' ? 0.55 + Math.sin(t * 9) * 0.12 : e.state === 'nap' ? 0.35 : 0;
+    e.tail.rotation.y = Math.sin(t * (walking ? 4 : 1.5) + e.ph) * (e.state === 'nap' ? 0.15 : 0.45);
+    e.tail.rotation.x = e.state === 'nap' ? -0.9 : walking ? 0.25 : -0.2;
+  }
+
   let _zTex = null;
   function zTexture() {
     if (_zTex) return _zTex;
@@ -1821,6 +2079,21 @@
       const soil = new THREE.Mesh(geo(1.3, 0.26, 1.3), mat(COL.dirt[0]));
       soil.position.y = -0.29;
       holder.add(grass, soil);
+    } else if (item.land) {
+      // a little slab that grows with the tier
+      const n = 3 + item.land, rr = mulberry32(item.land * 9);
+      for (let x = 0; x < n; x++) for (let z = 0; z < n; z++) {
+        const fresh = x === 0 || z === 0 || x === n - 1 || z === n - 1;
+        const g = new THREE.Mesh(geo(1, 0.4, 1), mat(fresh ? 0x6a8a5a : pick(SCENES.hollow.grass, rr)));
+        g.position.set(x - n / 2 + 0.5, -0.2, z - n / 2 + 0.5); holder.add(g);
+        const d = new THREE.Mesh(geo(1, 0.9, 1), mat(pick(COL.dirt, rr)));
+        d.position.set(x - n / 2 + 0.5, -0.85, z - n / 2 + 0.5); holder.add(d);
+        if (fresh && rr() < 0.5) { const f = new THREE.Mesh(geo(0.18, 0.18, 0.18), mat(pick(SCENES.hollow.flowers, rr))); f.position.set(x - n / 2 + 0.5, 0.12, z - n / 2 + 0.5); holder.add(f); }
+      }
+      const post = new THREE.Mesh(geo(0.12, 1.1, 0.12), mat(0x6a4a34)); post.position.set(0, 0.55, 0); holder.add(post);
+      const sign = new THREE.Mesh(geo(0.9, 0.5, 0.08), mat(0xa07e54)); sign.position.set(0, 1.0, 0.07); holder.add(sign);
+      const plus1 = new THREE.Mesh(geo(0.36, 0.08, 0.04), mat(0x4a8a3e)); plus1.position.set(0, 1.0, 0.12); holder.add(plus1);
+      const plus2 = new THREE.Mesh(geo(0.08, 0.36, 0.04), mat(0x4a8a3e)); plus2.position.set(0, 1.0, 0.12); holder.add(plus2);
     } else {
       const e = EXTRAS[item.extra].build(true);
       holder.add(e.g);
@@ -1840,7 +2113,7 @@
 
   // --- Butterflies (spawn when a focus plant blooms in daylight) ---
   function spawnButterfly(p) {
-    if (butterflies.length >= 4) return;
+    if (butterflies.length >= 4 || season === 'winter') return;
     const col = pick([0xffd94a, 0xff9acb, 0x8fd6ff, 0xffffff, 0xffa64a, 0xc8a0ff]);
     const g = new THREE.Group();
     part(g, 0x3a2a30, 0.06, 0.06, 0.28, 0, 0, 0);
@@ -1885,7 +2158,7 @@
     core.add(halo);
     const light = new THREE.PointLight(0xffd880, 0.5, 3, 2);
     core.add(light);
-    core.position.set(rand(-4.5, 4.5), rand(0.5, 3.5), rand(-4.5, 4.5));
+    core.position.set(rand(-EXT + 1, EXT - 1), rand(0.5, 3.5), rand(-EXT + 1, EXT - 1));
     fxGroup.add(core);
     fireflies.push({ mesh: core, halo, light, fade: 0, dying: false,
       speed: rand(0.4, 0.8), target: core.position.clone(), retarget: 0, flick: Math.random() * 6.28 });
@@ -1956,9 +2229,20 @@
       const rect = el.getBoundingClientRect();
       ndc.set(((e.clientX - rect.left) / rect.width) * 2 - 1, -((e.clientY - rect.top) / rect.height) * 2 + 1);
       ray.setFromCamera(ndc, camera);
-      const hit = ray.intersectObjects(plantsGroup.children, true)[0];
-      let id = null;
-      if (hit) { let o = hit.object; while (o && o.userData.plantId == null) o = o.parent; if (o) id = o.userData.plantId; }
+      const catGroups = Object.keys(extras).filter(k => k.startsWith('cat_')).map(k => extras[k].g);
+      const hit = ray.intersectObjects(plantsGroup.children.concat(catGroups), true)[0];
+      let id = null, catKey = null;
+      if (hit) {
+        let o = hit.object;
+        while (o && o.userData.plantId == null && !o.userData.catKey) o = o.parent;
+        if (o) { if (o.userData.catKey) catKey = o.userData.catKey; else id = o.userData.plantId; }
+      }
+      if (catKey) {
+        const cat = extras['cat_' + catKey];
+        el.style.cursor = 'pointer';
+        hoverCb({ cat: true, name: CATS[catKey].name, breed: CATS[catKey].breed, state: cat.state }, e.clientX, e.clientY);
+        return;
+      }
       const p = id != null ? find(id) : null;
       el.style.cursor = p ? 'pointer' : 'grab';
       hoverCb(p ? serializeOne(p) : null, e.clientX, e.clientY);
@@ -1970,7 +2254,7 @@
     const rect = renderer.domElement.getBoundingClientRect();
     let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
     [-1, 1].forEach(sx => [-1, 1].forEach(sz => [-2.7, 5.4].forEach(y => {
-      const v = new THREE.Vector3(sx * HALF, y, sz * HALF);
+      const v = new THREE.Vector3(sx * EXT, y, sz * EXT);
       terrariumGroup.localToWorld(v); v.project(camera);
       const px = rect.left + (v.x + 1) / 2 * rect.width, py = rect.top + (1 - v.y) / 2 * rect.height;
       x0 = Math.min(x0, px); x1 = Math.max(x1, px); y0 = Math.min(y0, py); y1 = Math.max(y1, py);
@@ -1987,7 +2271,7 @@
     // project the island's bounds to find a tight crop
     const pts = [];
     [-1, 1].forEach(sx => [-1, 1].forEach(sz => [-2.8, 6].forEach(y => {
-      const v = new THREE.Vector3(sx * (HALF + 0.3), y, sz * (HALF + 0.3));
+      const v = new THREE.Vector3(sx * (EXT + 0.3), y, sz * (EXT + 0.3));
       terrariumGroup.localToWorld(v); v.project(camera); pts.push(v);
     })));
     const xs = pts.map(v => (v.x + 1) / 2 * src.width), ys = pts.map(v => (1 - v.y) / 2 * src.height);
@@ -2046,6 +2330,11 @@
 
     // chimney smoke
     sceneAnims.forEach(fn => fn(dt, t));
+    snowflakes.forEach(f => {
+      f.m.position.y -= f.v * dt;
+      f.m.position.x += Math.sin(t * 0.8 + f.ph) * dt * 0.25;
+      if (f.m.position.y < 0) f.m.position.set(rand(-EXT, EXT), SKY, rand(-EXT, EXT));
+    });
     if (home && home.smokeAt) {
       home.smokeIn -= dt;
       if (home.smokeIn <= 0) {
@@ -2139,7 +2428,7 @@
     rain.drops.forEach(d => {
       d.mesh.visible = vis;
       if (!vis) return;
-      d.mesh.position.y -= d.v * dt;
+      d.mesh.position.y -= d.v * dt * (season === 'winter' ? 0.25 : 1);
       if (d.mesh.position.y < 0.05) resetDrop(d, false);
     });
   }
@@ -2154,7 +2443,7 @@
       if (f.dying && f.fade <= 0) { fxGroup.remove(f.mesh); fireflies.splice(i, 1); continue; }
       f.retarget -= dt;
       if (f.retarget <= 0) {
-        f.target.set(rand(-HALF + 0.5, HALF - 0.5), rand(0.4, 4.5), rand(-HALF + 0.5, HALF - 0.5));
+        f.target.set(rand(-EXT + 0.5, EXT - 0.5), rand(0.4, 4.5), rand(-EXT + 0.5, EXT - 0.5));
         f.retarget = rand(1.8, 3.5);
       }
       f.mesh.position.lerp(f.target, 0.015 * f.speed);
@@ -2177,7 +2466,7 @@
       if (leaving && s <= 0) { fxGroup.remove(b.g); butterflies.splice(i, 1); continue; }
       b.retarget -= dt;
       if (b.retarget <= 0) {
-        b.target.set(rand(-4.5, 4.5), rand(0.8, 4.5), rand(-4.5, 4.5));
+        b.target.set(rand(-EXT + 1, EXT - 1), rand(0.8, 4.5), rand(-EXT + 1, EXT - 1));
         b.retarget = rand(1.5, 3);
       }
       const prev = b.g.position.clone();
@@ -2196,9 +2485,10 @@
       if (sn.pause > 0) sn.pause -= dt;
       else {
         sn.g.position.x += sn.dir * sn.speed * dt;
-        if (sn.g.position.x > 3.8 || sn.g.position.x < -3.8) {
+        const lim = EXT - 1.7;
+        if (sn.g.position.x > lim || sn.g.position.x < -lim) {
           sn.dir *= -1; sn.pause = rand(2, 6);
-          sn.g.position.x = clamp(sn.g.position.x, -3.8, 3.8);
+          sn.g.position.x = clamp(sn.g.position.x, -lim, lim);
         }
       }
       sn.g.rotation.y += ((sn.dir > 0 ? 0 : Math.PI) - sn.g.rotation.y) * (1 - Math.exp(-dt * 2));
@@ -2249,7 +2539,8 @@
     init, load, plantSeed, setGrowth, bloom, wilt, revive, remove, clearPlants,
     serialize, speciesLabel, setMarker, setMood, setRain, setFireflies, setCritters, setExtras, preview,
     spawnButterfly, onHover, capture, screenRect, freeCount: () => freeCells().length,
-    get CAPACITY() { return BOX_W * BOX_D - RESERVED.size; },
+    get CAPACITY() { return GRID * GRID - RESERVED.size; },
+    setLand, land: () => RING, setSeason, season: () => season,
     setScene, scene: () => sceneId,
     SCENES: Object.keys(SCENES).map(id => ({ id, name: SCENES[id].name, tag: SCENES[id].tag,
       swatch: [SCENES[id].grass[1], SCENES[id].blossom[0], SCENES[id].pond.water] })),

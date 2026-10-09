@@ -268,6 +268,34 @@
   .seeds i.full { background: var(--leaf); border-color: var(--leaf); }
   .seeds i.next { border-color: var(--leaf); }
 
+  /* ---------- focus chart ---------- */
+  :root {
+    --bar: #5e9a4e;
+    --heat-0: rgba(90, 80, 50, .09); --heat-1: #cfe3bd; --heat-2: #9ccc80; --heat-3: #69a752; --heat-4: #3e7a31;
+  }
+  body[data-mood="night"] {
+    --bar: #8fd07a;
+    --heat-0: rgba(220, 220, 255, .09); --heat-1: #2f5a40; --heat-2: #3f8050; --heat-3: #67b062; --heat-4: #a6e08a;
+  }
+  .section .eyebrow { align-items: center; white-space: nowrap; }
+  .seg { display: inline-flex; gap: 2px; background: var(--chip); border-radius: 8px; padding: 2px; letter-spacing: 0; text-transform: none; }
+  .seg button { border: 0; background: transparent; font: 800 10.5px var(--font); color: var(--ink-faint); padding: 3px 7px; border-radius: 6px; cursor: pointer; }
+  .seg button.on { background: var(--panel-solid); color: var(--ink); box-shadow: 0 1px 4px -1px rgba(0,0,0,.15); }
+  .chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .chart .bar { fill: var(--bar); }
+  .chart .chart-base { stroke: var(--line); stroke-width: 1; }
+  .chart .chart-axis { fill: var(--ink-dim); font: 700 10px var(--font); }
+  .chart .chart-axis.today { fill: var(--ink); font-weight: 800; }
+  .chart .chart-val { fill: var(--ink); font: 800 10.5px var(--font); }
+  .chart rect[class^="heat-"] { stroke: var(--panel-solid); stroke-width: 0; }
+  .chart .heat-0 { fill: var(--heat-0); } .chart .heat-1 { fill: var(--heat-1); } .chart .heat-2 { fill: var(--heat-2); }
+  .chart .heat-3 { fill: var(--heat-3); } .chart .heat-4 { fill: var(--heat-4); }
+  .chart .heat-today { stroke: var(--ink-dim); stroke-width: 1.2; }
+  .heat-legend { display: flex; align-items: center; justify-content: flex-end; gap: 3px; margin-top: 6px; font-size: 10.5px; font-weight: 700; color: var(--ink-dim); }
+  .heat-legend i { width: 10px; height: 10px; border-radius: 2.5px; display: inline-block; }
+  .heat-legend i.heat-0 { background: var(--heat-0); } .heat-legend i.heat-1 { background: var(--heat-1); } .heat-legend i.heat-2 { background: var(--heat-2); }
+  .heat-legend i.heat-3 { background: var(--heat-3); } .heat-legend i.heat-4 { background: var(--heat-4); }
+
   /* ---------- coins + shop ---------- */
   .head-right { display: flex; align-items: center; gap: 8px; }
   .coin { width: 18px; height: 18px; flex: none; }
@@ -502,6 +530,7 @@
       <div class="set-row">Chimes <button class="toggle" data-t="fx" aria-label="Chimes"></button></div>
       <div class="set-row">Rain &amp; crickets <button class="toggle" data-t="amb" aria-label="Ambience"></button></div>
       <div class="set-row">Auto-start breaks <button class="toggle" data-t="autoBreak" aria-label="Auto-start breaks"></button></div>
+      <div class="set-row">Season <button class="link-btn" id="seasonBtn" type="button"></button></div>
       <div class="set-row">New here? <button class="link-btn" id="replayTour" type="button">Show the intro again</button></div>
     </div>
     <div class="stats">
@@ -509,6 +538,11 @@
       <div class="stat"><div class="v" id="sMinutes">0<small>m</small></div><div class="l">focused today</div></div>
       <div class="stat"><div class="v" id="sStreak">0</div><div class="l">day streak</div></div>
       <div class="stat"><div class="v" id="sTotal">0</div><div class="l">all-time blooms</div></div>
+    </div>
+    <div class="section">
+      <div class="eyebrow"><span id="chartTitle">Pomodoros per day</span>
+        <span class="seg" id="chartSeg"><button type="button" data-v="week" class="on">7 days</button><button type="button" data-v="weeks">16 wks</button></span></div>
+      <div id="chart" class="chart"></div>
     </div>
     <div class="section">
       <div class="eyebrow"><span>Critter journal</span><span id="journalCount"></span></div>
@@ -562,6 +596,7 @@
         <button data-cat="flowers" class="on">Flowers</button>
         <button data-cat="fauna">Critters</button>
         <button data-cat="accents">Accents</button>
+        <button data-cat="land">Land</button>
       </div>
       <div class="shop-note" id="shopNote"></div>
       <div class="shop-grid" id="shopGrid"></div>

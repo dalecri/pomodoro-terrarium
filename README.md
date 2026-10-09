@@ -6,6 +6,10 @@ A cozy pomodoro timer where an isometric voxel garden island grows while you wor
 [typing-speed-terrarium](https://github.com/dalecri/typing-speed-terrarium).
 
 - **Three islands**: *Blossom Hollow* (wood cabin, magenta blossoms, olive pond), *Amber Mill* (stone windmill, autumn maples, ducklings) and *Moonlit Greenhouse* (glass greenhouse, frost blossoms, koi). New users pick one in the intro, and each new garden in the album starts on a different island.
+- **Quebec seasons**: the island follows the calendar in Quebec's time zone. Winter (Dec–Mar) brings snow on the roofs and ground, frosted trees, a frozen pond and snowfall. Fall (Sep–Nov) turns the trees maple red and scatters leaves. Preview any season from settings.
+- **More land**: buy the Meadow expansion (13×13) and the Grand estate (15×15) in the shop's Land tab. Everything already planted stays put.
+- **The family cats**: Diego (rosetted Bengal), Ramses (spotted Savannah), Cali (calico) and Neo (white with grey tabby patches) roam the island, groom, and nap at night. Adopt them free from the Critters tab.
+- **Focus chart**: pomodoros per day as a 7-day bar chart or a 16-week heatmap, with per-day details on hover.
 - **Focus**: a mystery seed sprouts and grows a block at a time as the timer runs, then blooms when it finishes.
 - **Stop early**: the sprout wilts. If you stop in the first minute, the seed just goes back in your pocket.
 - **Finish a task**: it revives a wilted sprout, or pops up something small like a mushroom, moss or a tulip.

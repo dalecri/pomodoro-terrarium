@@ -10,7 +10,7 @@ Store.ready.then(function () {
   const MIN = 60000 / SPEED;
 
   const DEFAULTS = {
-    settings: { focus: 25, short: 5, long: 15, longEvery: 4, fx: true, amb: true, autoBreak: false },
+    settings: { focus: 25, short: 5, long: 15, longEvery: 4, fx: true, amb: true, autoBreak: false, season: 'auto' },
     timer: { mode: 'focus', status: 'idle', endAt: 0, remaining: 0, total: 0, growingId: null },
     cycle: 0,
     tasks: [],
@@ -25,6 +25,7 @@ Store.ready.then(function () {
     placed: {},        // ...and currently shown on the island
     bought: {},        // shop flower purchase counts
     scene: null,       // which island preset this garden lives on
+    land: 0,           // land expansions bought (0 = 11x11, 1 = 13x13, 2 = 15x15)
   };
 
   const CRITTERS = [
@@ -46,6 +47,10 @@ Store.ready.then(function () {
     { id: 'moonflower', cat: 'flowers', kind: 'moonflower', price: 15, name: 'Moonflower', desc: 'Glows softly, brightest on long breaks.' },
     { id: 'bonsai', cat: 'flowers', kind: 'bonsai', price: 20, name: 'Bonsai pine', desc: 'Patiently pruned cloud pads.' },
     { id: 'rainbow', cat: 'flowers', kind: 'rainbow', price: 25, name: 'Rainbow tulip', desc: 'Every petal a different color.' },
+    { id: 'cat_diego', cat: 'fauna', price: 0, family: true, name: 'Diego', desc: 'Rosetted Bengal. Stalks butterflies, naps in sunbeams.', toast: 'Diego is prowling the island 🐾' },
+    { id: 'cat_ramses', cat: 'fauna', price: 0, family: true, name: 'Ramses', desc: 'Spotted Savannah. Long legs, big ears, always exploring.', toast: 'Ramses moved in and is already exploring 🐾' },
+    { id: 'cat_cali', cat: 'fauna', price: 0, family: true, name: 'Cali', desc: 'Calico shorthair. Patches of orange, black and white.', toast: 'Cali found a sunny spot 🐾' },
+    { id: 'cat_neo', cat: 'fauna', price: 0, family: true, name: 'Neo', desc: 'White shorthair with big grey tabby patches.', toast: 'Neo is wandering the garden 🐾' },
     { id: 'bee', cat: 'fauna', price: 15, name: 'Bumblebee', desc: 'Visits your blooms by day, naps at night.', toast: 'A bumblebee is buzzing between your blooms 🐝' },
     { id: 'bunny', cat: 'fauna', price: 25, name: 'Bunny', desc: 'Sits in the front corner, twitches its nose, flops an ear.', toast: 'A bunny hopped into the corner 🐰' },
     { id: 'owl', cat: 'fauna', price: 30, name: 'Night owl', desc: 'Dozes on a fence post by day, wide awake at dusk.', toast: 'An owl perched on the corner 🦉' },
@@ -56,6 +61,10 @@ Store.ready.then(function () {
     { id: 'fairyLights', cat: 'accents', price: 22, name: 'Fairy lights', desc: 'Twinkly lights from the cabin to the old tree.', toast: 'Fairy lights strung up ✨' },
     { id: 'balloon', cat: 'accents', price: 35, name: 'Hot-air balloon', desc: 'Drifts in slow circles above your island.', toast: 'A hot-air balloon is drifting overhead 🎈' },
   ];
+  SHOP.push(
+    { id: 'land1', cat: 'land', price: 40, land: 1, name: 'Meadow expansion', desc: 'Grow your island to 13×13: a new ring of grass all the way around, +48 plots.' },
+    { id: 'land2', cat: 'land', price: 90, land: 2, name: 'Grand estate', desc: 'Grow to 15×15 for another +56 plots. Room for every flower you can dream up.' },
+  );
   const COIN_SVG = document.querySelector('.coin').outerHTML;
 
   // ---------- persistence ----------
@@ -115,7 +124,16 @@ Store.ready.then(function () {
   }
 
   // ---------- scene ----------
-  Terrarium.init($('scene'), { scene: S.scene });
+  // Quebec seasons, read off the calendar in Quebec's own time zone
+  const SEASON_LABEL = { spring: '🌸 Spring', summer: '☀️ Summer', fall: '🍁 Fall', winter: '❄️ Winter' };
+  const SEASON_ORDER = ['auto', 'spring', 'summer', 'fall', 'winter'];
+  function seasonFor(date) {
+    const m = +new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Montreal', month: 'numeric' }).format(date);
+    return m === 12 || m <= 3 ? 'winter' : m <= 5 ? 'spring' : m <= 8 ? 'summer' : 'fall';
+  }
+  const currentSeason = () => S.settings.season === 'auto' ? seasonFor(new Date()) : S.settings.season;
+
+  Terrarium.init($('scene'), { scene: S.scene, land: S.land, season: currentSeason() });
   Terrarium.load(S.garden);
   S.garden = Terrarium.serialize();     // plants may have been moved off scenery
   save();
@@ -430,8 +448,88 @@ Store.ready.then(function () {
     const used = Terrarium.CAPACITY - Terrarium.freeCount();
     $('jarCount').textContent = `${used} / ${Terrarium.CAPACITY} plots`;
     $('jarMeter').style.width = (used / Terrarium.CAPACITY * 100) + '%';
-    $('dayNote').textContent = '· ' + new Date().toLocaleDateString([], { weekday: 'long' });
+    $('dayNote').textContent = '· ' + new Date().toLocaleDateString([], { weekday: 'long' }) + ' · ' + SEASON_LABEL[currentSeason()];
+    renderChart();
   }
+
+  // ---------- focus chart: 7-day bars or a 16-week heatmap ----------
+  let chartView = 'week';
+  const dayAt = offset => { const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() - offset); return d; };
+  const statsOn = d => S.stats.days[dayKey(d)] || { pomos: 0, minutes: 0, tasks: 0 };
+  const fmtMins = m => m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}m`;
+  function dayTip(d) {
+    const st = statsOn(d), n = st.pomos;
+    const label = d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+    return `<b>${label}</b>${n} pomodoro${n === 1 ? '' : 's'}${n ? ` · ${fmtMins(st.minutes)} focused` : ''}` +
+      (st.tasks ? `<div class="sub">${st.tasks} task${st.tasks === 1 ? '' : 's'} done</div>` : '');
+  }
+  function weekSvg() {
+    const W = 252, top = 16, base = 72, H = 90, n = 7, bw = 20, step = (W - bw) / (n - 1);
+    const days = Array.from({ length: n }, (_, i) => dayAt(n - 1 - i));
+    const vals = days.map(d => statsOn(d).pomos);
+    const max = Math.max(4, ...vals), best = Math.max(...vals);
+    let bestShown = false, out = `<line x1="0" x2="${W}" y1="${base + 0.5}" y2="${base + 0.5}" class="chart-base"/>`;
+    days.forEach((d, i) => {
+      const v = vals[i], x = i * step, h = Math.round(v / max * (base - top)), y = base - h, r = Math.min(4, h, bw / 2);
+      const today = i === n - 1;
+      if (h > 0) out += `<path class="bar" d="M${x},${base} V${y + r} Q${x},${y} ${x + r},${y} H${x + bw - r} Q${x + bw},${y} ${x + bw},${y + r} V${base} Z"/>`;
+      const label = today || (v === best && v > 0 && !bestShown);
+      if (v === best && v > 0) bestShown = true;
+      if (label && v > 0) out += `<text x="${x + bw / 2}" y="${y - 4}" class="chart-val" text-anchor="middle">${v}</text>`;
+      out += `<text x="${x + bw / 2}" y="${H - 2}" class="chart-axis${today ? ' today' : ''}" text-anchor="middle">${today ? 'Today' : d.toLocaleDateString([], { weekday: 'narrow' })}</text>`;
+      out += `<rect x="${x - (step - bw) / 2}" y="0" width="${step}" height="${base}" fill="transparent" data-tip="${encodeURIComponent(dayTip(d))}"/>`;
+    });
+    return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Pomodoros per day for the last 7 days">${out}</svg>`;
+  }
+  function heatSvg() {
+    const weeks = 16, c = 11, g = 2, left = 16, top = 14, step = c + g;
+    const today = dayAt(0), start = dayAt(today.getDay() + (weeks - 1) * 7);   // a Sunday 15 weeks back
+    const level = n => n === 0 ? 0 : n === 1 ? 1 : n <= 3 ? 2 : n <= 5 ? 3 : 4;
+    let out = '', lastMonth = -1, lastLabel = -9;
+    ['M', 'W', 'F'].forEach((l, i) => { out += `<text x="0" y="${top + (1 + i * 2) * step + c - 2}" class="chart-axis">${l}</text>`; });
+    for (let w = 0; w < weeks; w++) {
+      for (let d = 0; d < 7; d++) {
+        const day = new Date(start); day.setDate(start.getDate() + w * 7 + d);
+        if (day > today) continue;
+        if (d === 0 && day.getMonth() !== lastMonth) {
+          lastMonth = day.getMonth();
+          if (w < weeks - 1 && w - lastLabel >= 3) {      // keep month names from colliding
+            out += `<text x="${left + w * step}" y="9" class="chart-axis">${day.toLocaleDateString([], { month: 'short' })}</text>`;
+            lastLabel = w;
+          }
+        }
+        const isToday = dayKey(day) === dayKey(today);
+        out += `<rect x="${left + w * step}" y="${top + d * step}" width="${c}" height="${c}" rx="2.5" class="heat-${level(statsOn(day).pomos)}${isToday ? ' heat-today' : ''}" data-tip="${encodeURIComponent(dayTip(day))}"/>`;
+      }
+    }
+    const W = left + weeks * step - g, H = top + 7 * step - g;
+    return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Pomodoros per day for the last 16 weeks">${out}</svg>
+      <div class="heat-legend">Less ${[0, 1, 2, 3, 4].map(l => `<i class="heat-${l}"></i>`).join('')} More</div>`;
+  }
+  function renderChart() {
+    $('chartSeg').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === chartView));
+    $('chartTitle').textContent = 'Pomodoros per day';
+    $('chart').innerHTML = chartView === 'week' ? weekSvg() : heatSvg();
+  }
+  $('chartSeg').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    chartView = b.dataset.v;
+    renderChart();
+  });
+  // hover (or tap) any bar or day for its numbers
+  const chartTip = (e) => {
+    const el = e.target.closest('[data-tip]');
+    if (!el) { $('tip').classList.remove('show'); return; }
+    const t = $('tip');
+    t.innerHTML = decodeURIComponent(el.dataset.tip);
+    t.classList.add('show');
+    const w = t.offsetWidth, h = t.offsetHeight;
+    t.style.left = Math.max(10, Math.min(window.innerWidth - w - 10, e.clientX - w / 2)) + 'px';
+    t.style.top = Math.max(10, e.clientY - h - 14) + 'px';
+  };
+  $('chart').addEventListener('pointermove', chartTip);
+  $('chart').addEventListener('pointerdown', chartTip);
+  $('chart').addEventListener('pointerleave', () => $('tip').classList.remove('show'));
 
   function renderJournal(fresh) {
     const got = CRITTERS.filter(c => S.unlocked[c.k]).length;
@@ -499,6 +597,18 @@ Store.ready.then(function () {
   });
 
   // ---------- settings ----------
+  function renderSeasonBtn() {
+    $('seasonBtn').textContent = S.settings.season === 'auto' ? `Auto · ${SEASON_LABEL[currentSeason()]}` : SEASON_LABEL[S.settings.season];
+  }
+  $('seasonBtn').addEventListener('click', () => {
+    S.settings.season = SEASON_ORDER[(SEASON_ORDER.indexOf(S.settings.season) + 1) % SEASON_ORDER.length];
+    Terrarium.setSeason(currentSeason());
+    syncGarden();
+    renderSeasonBtn();
+  });
+  // the calendar can roll into a new season while the app is open
+  setInterval(() => { if (Terrarium.season() !== currentSeason()) { Terrarium.setSeason(currentSeason()); syncGarden(); renderSeasonBtn(); } }, 60 * 60 * 1000);
+
   const LIMITS = { focus: [5, 90, 5], short: [1, 30, 1], long: [5, 45, 5] };
   function renderSettings() {
     document.querySelectorAll('.stepper').forEach(st => { st.querySelector('span').textContent = S.settings[st.dataset.k] + ' min'; });
@@ -561,6 +671,10 @@ Store.ready.then(function () {
   const tip = $('tip');
   Terrarium.onHover((p, x, y) => {
     if (!p) { tip.classList.remove('show'); return; }
+    if (p.cat) {
+      const doing = { walk: 'Wandering the garden', sit: 'Sitting pretty', groom: 'Grooming', nap: 'Napping 💤' }[p.state] || '';
+      tip.innerHTML = `<b>${p.name}</b>${p.breed}<div class="sub">${doing}</div>`;
+    } else {
     const m = p.meta || {};
     let story;
     if (p.state === 'growing') story = 'Still growing… keep going!';
@@ -571,6 +685,7 @@ Store.ready.then(function () {
     const label = p.state === 'growing' ? 'Mystery sprout' : Terrarium.speciesLabel(p.kind);
     const when = m.date ? fmtDate(m.date) + (m.minutes ? ` · ${m.minutes} min` : '') : '';
     tip.innerHTML = `<b>${label}</b>${story}${when ? `<div class="sub">${when}</div>` : ''}`;
+    }
     const w = tip.offsetWidth, h = tip.offsetHeight;
     tip.style.left = Math.min(window.innerWidth - w - 10, x + 14) + 'px';
     tip.style.top = Math.max(10, y - h - 10) + 'px';
@@ -626,21 +741,29 @@ Store.ready.then(function () {
     const full = Terrarium.freeCount() === 0;
     $('shopNote').textContent = shopCat === 'flowers'
       ? (full ? 'Your garden is full. Save it to the album to plant more.' : 'Flowers are planted on your island right away. Buy as many as you like.')
-      : shopCat === 'fauna' ? 'Critters move in for good. Tap “Placed” to send one on vacation.'
+      : shopCat === 'fauna' ? 'Your cats are free to adopt. Critters move in for good; tap “Placed” to send one on vacation.'
+      : shopCat === 'land' ? 'More room to grow. Everything you’ve planted stays right where it is.'
       : 'Accents are yours to keep. Tap “Placed” to put one away.';
     const items = SHOP.filter(it => it.cat === shopCat);
     $('shopGrid').innerHTML = items.map(it => {
-      const owned = it.cat !== 'flowers' && S.owned[it.id];
+      const owned = it.cat === 'land' ? S.land >= it.land : it.cat !== 'flowers' && S.owned[it.id];
       let btn;
-      if (owned) {
+      if (it.cat === 'land' && owned) {
+        btn = `<button class="buy owned" disabled>Yours ✓</button>`;
+      } else if (it.cat === 'land' && S.land < it.land - 1) {
+        btn = `<button class="buy" disabled>Needs ${SHOP.find(x => x.land === it.land - 1).name}</button>`;
+      } else if (owned) {
         btn = S.placed[it.id]
           ? `<button class="buy owned" data-id="${it.id}">Placed ✓</button>`
           : `<button class="buy stored" data-id="${it.id}">Put it back</button>`;
       } else {
         const short = S.coins < it.price, blocked = it.cat === 'flowers' && full;
-        btn = `<button class="buy" data-id="${it.id}" ${short || blocked ? 'disabled' : ''} title="${short ? `${it.price - S.coins} more coins needed` : ''}">${COIN_SVG}${it.price}</button>`;
+        btn = it.price === 0
+          ? `<button class="buy" data-id="${it.id}">Adopt 🐾</button>`
+          : `<button class="buy" data-id="${it.id}" ${short || blocked ? 'disabled' : ''} title="${short ? `${it.price - S.coins} more coins needed` : ''}">${COIN_SVG}${it.price}</button>`;
       }
-      const meta = it.cat === 'flowers' ? (S.bought[it.id] ? `Planted ×${S.bought[it.id]}` : '') : (owned ? 'Yours' : '');
+      const meta = it.cat === 'flowers' ? (S.bought[it.id] ? `Planted ×${S.bought[it.id]}` : '')
+        : it.family ? (owned ? 'Family · home' : 'Family') : (owned ? 'Yours' : '');
       return `<div class="card">
         <div class="thumb" data-thumb="${it.id}">${thumbs[it.id] ? `<img src="${thumbs[it.id]}" alt="">` : '<i class="loading"></i>'}</div>
         <div class="c-name">${it.name}</div>
@@ -653,7 +776,7 @@ Store.ready.then(function () {
     const todo = items.filter(it => !thumbs[it.id]);
     const next = () => {
       const it = todo.shift(); if (!it) return;
-      try { thumbs[it.id] = Terrarium.preview(it.cat === 'flowers' ? { plant: it.kind } : { extra: it.id }); } catch (e) { thumbs[it.id] = ''; }
+      try { thumbs[it.id] = Terrarium.preview(it.cat === 'flowers' ? { plant: it.kind } : it.cat === 'land' ? { land: it.land } : { extra: it.id }); } catch (e) { thumbs[it.id] = ''; }
       const slot = document.querySelector(`[data-thumb="${it.id}"]`);
       if (slot && thumbs[it.id]) slot.innerHTML = `<img src="${thumbs[it.id]}" alt="">`;
       requestAnimationFrame(next);
@@ -663,6 +786,19 @@ Store.ready.then(function () {
 
   function buy(id) {
     const it = SHOP.find(x => x.id === id); if (!it) return;
+    if (it.cat === 'land') {
+      if (S.land >= it.land || S.land < it.land - 1 || S.coins < it.price) return;
+      S.coins -= it.price;
+      S.land = it.land;
+      Terrarium.setLand(S.land);
+      syncGarden();
+      Sound.pop();
+      save(true);
+      renderCoins();
+      closeShop();
+      toast(`Your island grew to ${11 + 2 * S.land}×${11 + 2 * S.land}. Room for ${Terrarium.freeCount()} more plants 🌱`, 5000);
+      return;
+    }
     if (it.cat !== 'flowers' && S.owned[id]) {
       S.placed[id] = !S.placed[id];
       applyExtras(S.placed[id] ? id : null);
@@ -864,7 +1000,7 @@ Store.ready.then(function () {
   $('replayTour').addEventListener('click', () => { $('settings').classList.remove('open'); startTour(); });
 
   // ---------- boot ----------
-  function renderAll() { render(); renderTasks(); renderStats(); renderJournal(); renderShelf(); renderSettings(); }
+  function renderAll() { render(); renderTasks(); renderStats(); renderJournal(); renderShelf(); renderSettings(); renderSeasonBtn(); }
 
   // resume a session that was running while the tab was closed
   if (T.status !== 'idle' && T.growingId != null) Terrarium.setMarker(T.growingId);
