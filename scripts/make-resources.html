@@ -29,8 +29,11 @@ window.__make = async () => {
   await mark.decode();
   const out = {};
 
-  let [c, g] = canvas(1024);                 // adaptive foreground: keep inside the 66% safe zone
-  g.drawImage(mark, 1024 * 0.19, 1024 * 0.19, 1024 * 0.62, 1024 * 0.62);
+  // adaptive foreground: Capacitor already insets this by 16.7% (the 72dp visible area of the
+  // 108dp layer), so the art fills it edge to edge, nudged up so the island sits centered and
+  // every pixel stays inside a circle mask (radius 0.44)
+  let [c, g] = canvas(1024);
+  g.drawImage(mark, 0, -1024 * 0.106, 1024, 1024);
   out['icon-foreground.png'] = c.toDataURL('image/png');
 
   [c, g] = canvas(1024);                     // adaptive background
