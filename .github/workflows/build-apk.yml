@@ -1,0 +1,42 @@
+name: Build APK
+
+# Builds the debug APK and attaches it to a pre-release, so it can be
+# downloaded straight to a phone from the repo's Releases page.
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      # Optional: sign with your own debug key (base64 of ~/.android/debug.keystore)
+      # so the APK installs over an app you built on your own machine.
+      - name: Restore debug keystore
+        env:
+          KEYSTORE: ${{ secrets.ANDROID_DEBUG_KEYSTORE }}
+        if: env.KEYSTORE != ''
+        run: mkdir -p ~/.android && echo "$KEYSTORE" | base64 -d > ~/.android/debug.keystore
+      - run: npm ci
+      - run: npm run apk
+      - name: Publish pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="apk-${{ github.run_number }}"
+          gh release create "$tag" dist/pomodoro-terrarium.apk \
+            --target "$GITHUB_SHA" --prerelease \
+            --title "APK #${{ github.run_number }} (${GITHUB_REF_NAME}, ${GITHUB_SHA::7})" \
+            --notes "Debug build of ${GITHUB_SHA::7} from ${GITHUB_REF_NAME}."
