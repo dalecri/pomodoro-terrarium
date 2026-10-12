@@ -58,4 +58,6 @@ npm install
 npm run apk
 ```
 
+**Automatic builds:** every push runs `.github/workflows/build-apk.yml`, which builds the APK and publishes it as a pre-release on the [Releases page](https://github.com/dalecri/pomodoro-terrarium/releases), so you can download it straight to a phone. The repository secret `ANDROID_DEBUG_KEYSTORE` (your `~/.android/debug.keystore`, base64-encoded) makes those builds signed with the same key as local ones, so they install over an existing copy of the app and Google Tasks sign-in works.
+
 The launcher icons and splash screens are made from `resources/`. `scripts/make-resources.html` renders those source images from the logo.
