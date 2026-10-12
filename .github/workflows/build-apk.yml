@@ -39,7 +39,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           # show which key signed this build, so it can be checked from the Releases page
-          sha1=$(keytool -printcert -jarfile dist/pomodoro-terrarium.apk | grep -m1 'SHA1:' | awk '{print $2}')
+          apksigner="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)/apksigner"
+          sha1=$("$apksigner" verify --print-certs dist/pomodoro-terrarium.apk | grep -m1 'SHA-1 digest' | awk '{print $NF}')
           echo "Signed with SHA-1 $sha1"
           tag="apk-${{ github.run_number }}"
           gh release create "$tag" dist/pomodoro-terrarium.apk \
