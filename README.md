@@ -32,7 +32,7 @@ Everything is saved in `localStorage`, including a running timer, so you can clo
 python -m http.server 5179
 ```
 
-Then open http://localhost:5179. Add `?speed=60` to make a minute pass every second for demos.
+Then open http://localhost:5179. To try things quickly, turn on **Settings → Test mode** so timers count in seconds (a badge on the timer shows it's on; test sessions don't count toward focus time). **Settings → Island** switches between the seven islands at any time.
 
 First-time visitors get a short 5-step walkthrough (replay it from settings: "Show the intro again").
 

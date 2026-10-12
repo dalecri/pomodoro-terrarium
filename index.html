@@ -239,6 +239,11 @@
     margin: 10px 0 4px; font-variant-numeric: tabular-nums;
   }
   .time .colon { opacity: .55; margin: 0 1px; }
+  .timer.test::before {
+    content: 'TEST MODE · SECONDS'; position: absolute; top: -11px; left: 50%; transform: translateX(-50%);
+    padding: 3px 10px; border-radius: 999px; background: var(--tomato); color: var(--tomato-ink);
+    font: 800 10px var(--font); letter-spacing: .08em; white-space: nowrap;
+  }
   .timer.running .time .colon { animation: breathe 2s ease-in-out infinite; }
   @keyframes breathe { 50% { opacity: .2; } }
   .caption { font-size: 13.5px; font-weight: 600; color: var(--ink-dim); min-height: 20px; margin-bottom: 12px; padding: 0 8px; }
@@ -550,10 +555,12 @@
       <div class="set-row">Auto-start breaks <button class="toggle" data-t="autoBreak" aria-label="Auto-start breaks"></button></div>
       <div class="set-row">Keep screen on while focusing <button class="toggle" data-t="awake" aria-label="Keep screen on while focusing"></button></div>
       <div class="set-row">Haptics <button class="toggle" data-t="haptics" aria-label="Haptics"></button></div>
+      <div class="set-row g-row"><span>Test mode<small class="g-status">Timers count in seconds</small></span> <button class="toggle" data-t="testSeconds" aria-label="Test mode"></button></div>
       <div class="set-row g-row">
         <span>Google Tasks<small id="gStatus" class="g-status"></small></span>
         <span class="g-ctl"><button class="link-btn" id="gOff" type="button" hidden>Disconnect</button><button class="btn g-btn" id="gBtn" type="button">Connect</button></span>
       </div>
+      <div class="set-row">Island <button class="link-btn" id="sceneBtn" type="button"></button></div>
       <div class="set-row">Season <button class="link-btn" id="seasonBtn" type="button"></button></div>
       <div class="set-row">New here? <button class="link-btn" id="replayTour" type="button">Show the intro again</button></div>
     </div>

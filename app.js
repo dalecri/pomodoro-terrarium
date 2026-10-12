@@ -7,10 +7,9 @@ Store.ready.then(function () {
   // The island keeps its own save (seeded once from the jar version) so the two
   // branches never trample each other's gardens.
   const KEY = 'pomodoro_terrarium_island_v1', JAR_KEY = 'pomodoro_terrarium_v1';
-  const MIN = 60000 / SPEED;
 
   const DEFAULTS = {
-    settings: { focus: 25, short: 5, long: 15, longEvery: 4, fx: true, amb: true, autoBreak: false, season: 'auto', awake: true, haptics: true },
+    settings: { focus: 25, short: 5, long: 15, longEvery: 4, fx: true, amb: true, autoBreak: false, season: 'auto', awake: true, haptics: true, testSeconds: false },
     timer: { mode: 'focus', status: 'idle', endAt: 0, remaining: 0, total: 0, growingId: null },
     cycle: 0,
     tasks: [],
@@ -153,7 +152,10 @@ Store.ready.then(function () {
   // =====================================================
   const T = S.timer;
   const MODE_LABEL = { focus: 'Focus', short: 'Short break', long: 'Long break' };
-  function durMs(mode) { return S.settings[mode] * MIN; }
+  // Test mode (settings) makes every "minute" a second, for trying the app quickly
+  const unitMs = () => (S.settings.testSeconds ? 1000 : 60000) / SPEED;
+  const unitLabel = () => S.settings.testSeconds ? 'sec' : 'min';
+  function durMs(mode) { return S.settings[mode] * unitMs(); }
   function remaining() {
     if (T.status === 'running') return Math.max(0, T.endAt - Date.now());
     if (T.status === 'paused') return T.remaining;
@@ -216,7 +218,7 @@ Store.ready.then(function () {
     if (T.mode !== 'focus' || T.status === 'idle') return;
     const elapsed = T.total - remaining();
     if (T.growingId != null) {
-      if (elapsed < MIN) {
+      if (elapsed < unitMs()) {
         Terrarium.remove(T.growingId);
         toast('Seed tucked back into your pocket 🌰');
       } else {
@@ -243,7 +245,7 @@ Store.ready.then(function () {
       const day = today();
       S.stats.total++;
       day.pomos++;
-      day.minutes += S.settings.focus;
+      if (!S.settings.testSeconds) day.minutes += S.settings.focus;   // test sessions don't inflate focus time
       const task = activeTask();
       if (task) task.pomos = (task.pomos || 0) + 1;
       S.cycle++;
@@ -360,6 +362,7 @@ Store.ready.then(function () {
 
   function render() {
     $('timer').classList.toggle('running', T.status === 'running');
+    $('timer').classList.toggle('test', !!S.settings.testSeconds);
     Device.setAwake(S.settings.awake && T.mode === 'focus' && T.status === 'running');
     const main = $('mainBtn');
     if (T.status === 'running') main.textContent = 'Pause';
@@ -620,6 +623,19 @@ Store.ready.then(function () {
   });
 
   // ---------- settings ----------
+  // switch the island at any time; plants on the new scenery hop to a free spot
+  function renderSceneBtn() {
+    $('sceneBtn').textContent = Terrarium.SCENES.find(sc => sc.id === S.scene).name;
+  }
+  $('sceneBtn').addEventListener('click', () => {
+    const ids = Terrarium.SCENES.map(sc => sc.id);
+    S.scene = ids[(ids.indexOf(S.scene) + 1) % ids.length];
+    Terrarium.setScene(S.scene);
+    syncGarden();
+    renderSceneBtn();
+    Sound.unlock(); Sound.soft();
+  });
+
   function renderSeasonBtn() {
     $('seasonBtn').textContent = S.settings.season === 'auto' ? `Auto · ${SEASON_LABEL[currentSeason()]}` : SEASON_LABEL[S.settings.season];
   }
@@ -634,7 +650,7 @@ Store.ready.then(function () {
 
   const LIMITS = { focus: [5, 90, 5], short: [1, 30, 1], long: [5, 45, 5] };
   function renderSettings() {
-    document.querySelectorAll('.stepper').forEach(st => { st.querySelector('span').textContent = S.settings[st.dataset.k] + ' min'; });
+    document.querySelectorAll('.stepper').forEach(st => { st.querySelector('span').textContent = S.settings[st.dataset.k] + ' ' + unitLabel(); });
     document.querySelectorAll('.toggle').forEach(tg => tg.classList.toggle('on', !!S.settings[tg.dataset.t]));
   }
   $('settingsBtn').addEventListener('click', () => $('settings').classList.toggle('open'));
@@ -655,6 +671,11 @@ Store.ready.then(function () {
     if (k === 'fx') Sound.setFx(S.settings.fx);
     if (k === 'amb') { Sound.unlock(); Sound.setAmb(S.settings.amb); }
     if (k === 'awake') render();
+    if (k === 'testSeconds') {
+      if (T.status === 'idle') T.remaining = T.total = durMs(T.mode);   // a running timer keeps its length
+      renderSettings(); render();
+      toast(S.settings.testSeconds ? 'Test mode on: timers count in seconds 🧪' : 'Test mode off: back to real minutes');
+    }
     if (k === 'haptics' && S.settings.haptics) Device.buzz('medium');
     save(); renderSettings();
   }));
@@ -1084,7 +1105,7 @@ Store.ready.then(function () {
   if (Store.app) Store.app.addListener('resume', () => GTasks.sync('resume'));
 
   // ---------- boot ----------
-  function renderAll() { renderGoogle(); render(); renderTasks(); renderStats(); renderJournal(); renderShelf(); renderSettings(); renderSeasonBtn(); }
+  function renderAll() { renderGoogle(); render(); renderTasks(); renderStats(); renderJournal(); renderShelf(); renderSettings(); renderSeasonBtn(); renderSceneBtn(); }
 
   // resume a session that was running while the tab was closed
   if (T.status !== 'idle' && T.growingId != null) Terrarium.setMarker(T.growingId);
