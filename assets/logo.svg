@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1180 512" role="img" aria-labelledby="title">
+<title id="title">Pomodoro Terrarium — grow a garden while you focus</title>
+<defs><linearGradient id="word" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#543b63"/><stop offset="1" stop-color="#9c527e"/></linearGradient></defs>
+<g transform="translate(12 8) scale(.96)">
+<path d="m118 369 138-61 138 61-138 63-138-63Z" fill="#6c9b63"/>
+<path d="m118 369 138 63v36l-138-63v-36Z" fill="#70576a"/><path d="m394 369-138 63v36l138-63v-36Z" fill="#57435d"/>
+<path d="m150 367 106-47 106 47-106 49-106-49Z" fill="#94b977"/>
+<path d="M157 322V231c0-58 44-108 99-108s99 50 99 108v91" fill="none" stroke="#b991ac" stroke-width="13" stroke-linecap="round"/>
+<path d="M145 323h222" fill="none" stroke="#b991ac" stroke-width="14" stroke-linecap="round"/>
+<path d="M242 117c0-12 6-19 14-19s14 7 14 19" fill="none" stroke="#b991ac" stroke-width="11" stroke-linecap="round"/>
+<path d="M256 191c-18-18-43-15-53-2-27-12-53 1-58 25-32 1-48 24-40 50-16 25-5 53 17 63 3 26 26 43 52 39 19 20 47 19 66 3 22 15 51 12 66-9 27 3 47-17 46-42 24-17 26-47 6-66 4-26-15-47-42-48-13-22-39-27-60-13Z" fill="#ef554b"/>
+<circle cx="255" cy="282" r="34" fill="#fff3e6"/><path d="M255 262v21l16 10" fill="none" stroke="#765269" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/><circle cx="255" cy="282" r="4.5" fill="#765269"/>
+<path d="M256 207c-17-18-40-22-54-13 8 20 27 30 51 22-4 18 4 31 14 36 8-15 5-27-2-37 22 7 43-1 49-17-20-8-41-4-58 9Z" fill="#4f8a58"/>
+<path d="M256 204c-12-11-17-24-14-36 12 2 20 11 21 24 8-17 21-24 35-22-2 16-14 28-32 32" fill="#79b76a"/>
+</g>
+<text x="458" y="225" font-family="Fredoka, Nunito, Trebuchet MS, sans-serif" font-size="100" font-weight="600" fill="url(#word)">Pomodoro</text>
+<text x="458" y="335" font-family="Fredoka, Nunito, Trebuchet MS, sans-serif" font-size="100" font-weight="600" fill="#b8478f">Terrarium</text>
+<text x="464" y="395" font-family="Nunito, Trebuchet MS, sans-serif" font-size="28" font-weight="700" letter-spacing="2" fill="#8a6688">GROW A GARDEN WHILE YOU FOCUS</text>
+</svg>
