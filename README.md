@@ -1,4 +1,4 @@
-<p align="center"><img src="assets/logo.png" alt="Pomodoro Terrarium" width="560"></p>
+<p align="center"><img src="assets/logo.svg" alt="Pomodoro Terrarium — grow a garden while you focus" width="560"></p>
 
 # Pomodoro Terrarium
 
@@ -38,7 +38,7 @@ First-time visitors get a short 5-step walkthrough (replay it from settings: "Sh
 
 Keys: <kbd>Space</kbd> start/pause · <kbd>N</kbd> new task · <kbd>Esc</kbd> close panels (mobile).
 
-The logo files in `assets/` are rendered by `assets/logo-generator.html`, using the same voxel style as the app.
+The refreshed vector logo is in `assets/logo.svg` (full lockup), `assets/logo-mark.svg` (transparent mark) and `assets/app-icon.svg` (app tile). The Android icon and splash source images can be regenerated from the mark with `scripts/make-resources.html`.
 
 ## Google Tasks sync
 
