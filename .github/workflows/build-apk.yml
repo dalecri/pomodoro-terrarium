@@ -23,20 +23,26 @@ jobs:
           distribution: temurin
           java-version: 21
       # Optional: sign with your own debug key (base64 of ~/.android/debug.keystore)
-      # so the APK installs over an app you built on your own machine.
+      # so the APK installs over an app you built on your own machine. The path is
+      # handed to android/app/build.gradle, which uses it for the debug signing config.
       - name: Restore debug keystore
         env:
           KEYSTORE: ${{ secrets.ANDROID_DEBUG_KEYSTORE }}
         if: env.KEYSTORE != ''
-        run: mkdir -p ~/.android && echo "$KEYSTORE" | base64 -d > ~/.android/debug.keystore
+        run: |
+          printf '%s' "$KEYSTORE" | tr -d '[:space:]' | base64 -d > "$RUNNER_TEMP/debug.keystore"
+          echo "ANDROID_DEBUG_KEYSTORE_PATH=$RUNNER_TEMP/debug.keystore" >> "$GITHUB_ENV"
       - run: npm ci
       - run: npm run apk
       - name: Publish pre-release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          # show which key signed this build, so it can be checked from the Releases page
+          sha1=$(keytool -printcert -jarfile dist/pomodoro-terrarium.apk | grep -m1 'SHA1:' | awk '{print $2}')
+          echo "Signed with SHA-1 $sha1"
           tag="apk-${{ github.run_number }}"
           gh release create "$tag" dist/pomodoro-terrarium.apk \
             --target "$GITHUB_SHA" --prerelease \
             --title "APK #${{ github.run_number }} (${GITHUB_REF_NAME}, ${GITHUB_SHA::7})" \
-            --notes "Debug build of ${GITHUB_SHA::7} from ${GITHUB_REF_NAME}."
+            --notes "Debug build of ${GITHUB_SHA::7} from ${GITHUB_REF_NAME}. Signing key SHA-1: ${sha1}"
