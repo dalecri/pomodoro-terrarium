@@ -1,4 +1,4 @@
-<p align="center"><img src="assets/logo.png" alt="Pomodoro Terrarium" width="560"></p>
+<p align="center"><img src="assets/logo-icon.png" alt="Pomodoro Terrarium" width="180"></p>
 
 # Pomodoro Terrarium
 
@@ -38,7 +38,7 @@ First-time visitors get a short 5-step walkthrough (replay it from settings: "Sh
 
 Keys: <kbd>Space</kbd> start/pause · <kbd>N</kbd> new task · <kbd>Esc</kbd> close panels (mobile).
 
-The logo files in `assets/` are rendered by `assets/logo-generator.html`, using the same voxel style as the app.
+The master logo is `assets/logo-source.png`. `python scripts/make-logo-assets.py` (needs Pillow) makes every icon from it: the app tile, the transparent tomato, the favicon, the home-screen icon and the Android icon and splash sources in `resources/`.
 
 ## Google Tasks sync
 
@@ -60,4 +60,4 @@ npm run apk
 
 **Automatic builds:** every push runs `.github/workflows/build-apk.yml`, which builds the APK and publishes it as a pre-release on the [Releases page](https://github.com/dalecri/pomodoro-terrarium/releases), so you can download it straight to a phone. The repository secret `ANDROID_DEBUG_KEYSTORE` (your `~/.android/debug.keystore`, base64-encoded) makes those builds signed with the same key as local ones, so they install over an existing copy of the app and Google Tasks sign-in works.
 
-The launcher icons and splash screens are made from `resources/`. `scripts/make-resources.html` renders those source images from the logo.
+The launcher icons and splash screens are made from `resources/` with `npx @capacitor/assets generate --android --assetPath resources`.
