@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+<title id="title">Pomodoro Terrarium app icon</title>
+<defs>
+  <linearGradient id="sky" x1="256" y1="0" x2="256" y2="512" gradientUnits="userSpaceOnUse"><stop stop-color="#624668"/><stop offset=".52" stop-color="#85627f"/><stop offset="1" stop-color="#b08aa0"/></linearGradient>
+  <radialGradient id="glow" cx="0" cy="0" r="1" gradientTransform="matrix(0 270 -270 0 256 270)" gradientUnits="userSpaceOnUse"><stop stop-color="#ffe0ef" stop-opacity=".42"/><stop offset="1" stop-color="#ffe0ef" stop-opacity="0"/></radialGradient>
+</defs>
+<rect width="512" height="512" rx="116" fill="url(#sky)"/>
+<rect width="512" height="512" rx="116" fill="url(#glow)"/>
+<g fill="#fff6ef" opacity=".78">
+<path d="M87 110h5v24h-5zM77 119h25v5H77z"/>
+<path d="M422 153h4v19h-4zM414 160h20v4h-20z"/>
+<circle cx="110" cy="195" r="3"/><circle cx="399" cy="103" r="3"/>
+</g>
+<g transform="translate(0 5) scale(.82) translate(56 42)">
+<path d="m118 369 138-61 138 61-138 63-138-63Z" fill="#6c9b63"/>
+<path d="m118 369 138 63v36l-138-63v-36Z" fill="#70576a"/>
+<path d="m394 369-138 63v36l138-63v-36Z" fill="#57435d"/>
+<path d="m150 367 106-47 106 47-106 49-106-49Z" fill="#94b977"/>
+<path d="M157 322V231c0-58 44-108 99-108s99 50 99 108v91" fill="none" stroke="#fff4df" stroke-opacity=".82" stroke-width="13" stroke-linecap="round"/>
+<path d="M145 323h222" fill="none" stroke="#fff4df" stroke-opacity=".94" stroke-width="14" stroke-linecap="round"/>
+<path d="M242 117c0-12 6-19 14-19s14 7 14 19" fill="none" stroke="#fff4df" stroke-opacity=".85" stroke-width="11" stroke-linecap="round"/>
+<path d="M256 191c-18-18-43-15-53-2-27-12-53 1-58 25-32 1-48 24-40 50-16 25-5 53 17 63 3 26 26 43 52 39 19 20 47 19 66 3 22 15 51 12 66-9 27 3 47-17 46-42 24-17 26-47 6-66 4-26-15-47-42-48-13-22-39-27-60-13Z" fill="#ef554b"/>
+<circle cx="255" cy="282" r="34" fill="#fff3e6"/>
+<path d="M255 262v21l16 10" fill="none" stroke="#765269" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="255" cy="282" r="4.5" fill="#765269"/>
+<path d="M256 207c-17-18-40-22-54-13 8 20 27 30 51 22-4 18 4 31 14 36 8-15 5-27-2-37 22 7 43-1 49-17-20-8-41-4-58 9Z" fill="#4f8a58"/>
+<path d="M256 204c-12-11-17-24-14-36 12 2 20 11 21 24 8-17 21-24 35-22-2 16-14 28-32 32" fill="#79b76a"/>
+</g>
+</svg>
