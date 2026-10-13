@@ -2,7 +2,7 @@
 
     python scripts/make-logo-assets.py
 
-Input:  assets/logo-source.png   (the tomato-clock tile: purple rounded square)
+Input:  assets/logo-source.png   (the tomato clock on warm off-white)
 Output: assets/logo-icon.png        app tile with transparent corners (1024)
         assets/logo-mark.png        the tomato alone on transparency (1024)
         assets/favicon.png          32x32
@@ -16,7 +16,7 @@ from PIL import Image, ImageFilter
 
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / 'assets' / 'logo-source.png'
-PURPLE = (99, 62, 100)
+BG = (253, 250, 246)  # warm off-white sampled from the artwork
 
 
 def dist(a, b):
@@ -69,7 +69,7 @@ tile.resize((1024, 1024), Image.LANCZOS).save(ROOT / 'assets' / 'logo-icon.png')
 # 2) the tomato alone: clear the purple field, starting just inside the rounded border
 mark = tile.copy()
 seeds = [(x, y) for x in range(W) for y in (int(H * 0.06), int(H * 0.94))] + [(x, y) for y in range(H) for x in (int(W * 0.06), int(W * 0.94))]
-flood_clear(mark, seeds, lambda p: p[3] > 0 and dist(p, PURPLE) < 46)
+flood_clear(mark, seeds, lambda p: p[3] > 0 and dist(p, BG) < 46)
 # the tile's soft rounded border survives the flood fill; the tomato sits well inside it,
 # so clear a margin all the way around
 px = mark.load()
@@ -84,15 +84,15 @@ mark_sq.save(ROOT / 'assets' / 'logo-mark.png')
 
 # 3) small icons
 tile.resize((32, 32), Image.LANCZOS).save(ROOT / 'assets' / 'favicon.png')
-fit(mark, 180, 0.78, bg=PURPLE + (255,)).save(ROOT / 'assets' / 'apple-touch-icon.png')
+fit(mark, 180, 0.78, bg=BG + (255,)).save(ROOT / 'assets' / 'apple-touch-icon.png')
 
 # 4) Android launcher + splash sources for @capacitor/assets.
 # Adaptive foreground: Capacitor insets this layer to the 72dp visible area, and launchers
 # then crop that with a circle/squircle; the round tomato can span ~74% and stay inside it.
 res = ROOT / 'resources'
 fit(mark, 1024, 0.74).save(res / 'icon-foreground.png')
-Image.new('RGBA', (1024, 1024), PURPLE + (255,)).save(res / 'icon-background.png')
-fit(mark, 1024, 0.74, bg=PURPLE + (255,)).save(res / 'icon-only.png')
+Image.new('RGBA', (1024, 1024), BG + (255,)).save(res / 'icon-background.png')
+fit(mark, 1024, 0.74, bg=BG + (255,)).save(res / 'icon-only.png')
 for name in ('splash.png', 'splash-dark.png'):
-    fit(mark, 2732, 0.3, bg=PURPLE + (255,)).save(res / name)
+    fit(mark, 2732, 0.3, bg=BG + (255,)).save(res / name)
 print('logo assets written')
