@@ -2,11 +2,11 @@
 
     python scripts/make-logo-assets.py
 
-Input:  assets/logo-source.png   (the tomato clock on warm off-white)
-Output: assets/logo-icon.png        app tile with transparent corners (1024)
+Input:  assets/logo-source.png   (the tomato clock on muted sage green)
+Output: assets/logo-icon.png        full-bleed sage app tile (1024)
         assets/logo-mark.png        the tomato alone on transparency (1024)
         assets/favicon.png          32x32
-        assets/apple-touch-icon.png 180x180, full-bleed purple (iOS rounds it)
+        assets/apple-touch-icon.png 180x180, full-bleed sage (iOS rounds it)
         resources/*.png             sources for `npx @capacitor/assets generate`
 Needs Pillow (pip install pillow).
 """
@@ -16,7 +16,7 @@ from PIL import Image, ImageFilter
 
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / 'assets' / 'logo-source.png'
-BG = (253, 250, 246)  # warm off-white sampled from the artwork
+BG = (153, 173, 149)  # muted sage sampled from the artwork
 
 
 def dist(a, b):
@@ -60,13 +60,11 @@ def fit(im, size, scale, dy=0.0, bg=None):
 src = Image.open(SRC).convert('RGBA')
 W, H = src.size
 
-# 1) the tile with its white corners made transparent
+# 1) full-bleed tile; the platform supplies the launcher corner mask
 tile = src.copy()
-flood_clear(tile, [(0, 0), (W - 1, 0), (0, H - 1), (W - 1, H - 1)], lambda p: p[0] > 200 and p[1] > 200 and p[2] > 200)
-tile = soften_edge(tile)
 tile.resize((1024, 1024), Image.LANCZOS).save(ROOT / 'assets' / 'logo-icon.png')
 
-# 2) the tomato alone: clear the purple field, starting just inside the rounded border
+# 2) the tomato alone: clear the sage field from near the canvas edges
 mark = tile.copy()
 seeds = [(x, y) for x in range(W) for y in (int(H * 0.06), int(H * 0.94))] + [(x, y) for y in range(H) for x in (int(W * 0.06), int(W * 0.94))]
 flood_clear(mark, seeds, lambda p: p[3] > 0 and dist(p, BG) < 46)

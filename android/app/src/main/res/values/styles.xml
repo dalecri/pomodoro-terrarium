@@ -18,7 +18,7 @@
 
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
         <item name="android:background">@drawable/splash</item>
-        <!-- Android 12+ launch screen: the logo's purple behind the launcher icon -->
-        <item name="windowSplashScreenBackground">#633E64</item>
+        <!-- Android 12+ launch screen: match the logo's sage background -->
+        <item name="windowSplashScreenBackground">#99AD95</item>
     </style>
 </resources>
