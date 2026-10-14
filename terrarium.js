@@ -185,22 +185,32 @@
     fireflyGlow: 0xfff2c2,
   };
 
-  // ---- Mood lighting presets (lerped every frame) ----
+  // ---- Times of day: warm Lofi Room light and Voxel Worlds skies ----
   const MOODS = {
-    day: {     // focus: the dusky-mauve diorama look
-      key: [0xffe6d0, 1.75], front: [0xf0d8ff, 0.55], fill: [0xb8a0ff, 0.45],
-      amb: [0xd8c0e0, 1.0], hemi: [0xf0d0f0, 0x4a3a70, 0.8], interior: [0xffc890, 0.5],
-      rim: [0xffc0e0, 0.55], exposure: 1.15, stars: 0, glow: 0.2,
+    morning: {
+      key: [0xffe2c4, 2.1], front: [0xf6dce6, 0.5], fill: [0xd6c8e8, 0.4],
+      amb: [0xf6dce6, 0.8], hemi: [0xfff0e2, 0x8a6a6a, 0.55], interior: [0xffc890, 0.55],
+      rim: [0xffd2a8, 0.45], exposure: 1.06, stars: 0, glow: 0.15, dir: [-0.7, 0.55, 0.55],
+    },
+    golden: {
+      key: [0xffad6a, 2.2], front: [0xf0b8c8, 0.4], fill: [0xc898d8, 0.35],
+      amb: [0xf0c0c8, 0.6], hemi: [0xffd0b0, 0x80606a, 0.55], interior: [0xffb860, 1.8],
+      rim: [0xffa064, 0.5], exposure: 1.06, stars: 0.15, glow: 0.6, dir: [0.95, 0.42, -0.15],
+    },
+    day: {     // bright afternoon sunlight
+      key: [0xfff3dc, 2.5], front: [0xe8f4ff, 0.5], fill: [0xd6e8ff, 0.4],
+      amb: [0xe8f4ff, 0.75], hemi: [0xdff6ff, 0x7a9a60, 0.7], interior: [0xffc890, 0.45],
+      rim: [0xfff6e8, 0.4], exposure: 1.12, stars: 0, glow: 0.2, dir: [0.45, 1, 0.3],
     },
     dusk: {    // short break: rainy periwinkle
       key: [0xc8c8ff, 1.0], front: [0xd0d8ff, 0.5], fill: [0x9fb0ff, 0.5],
       amb: [0xb0b0d8, 1.05], hemi: [0xc8d0ff, 0x404070, 0.7], interior: [0xffc080, 1.6],
-      rim: [0xa0b0ff, 0.5], exposure: 1.2, stars: 0.1, glow: 0.6,
+      rim: [0xa0b0ff, 0.5], exposure: 1.2, stars: 0.1, glow: 0.6, dir: [0.7, 0.55, 0.5],
     },
     night: {   // long break: starry indigo, glowing mushrooms
       key: [0x8a9aff, 0.45], front: [0x6070c0, 0.3], fill: [0x5060c0, 0.3],
       amb: [0x4a4a98, 0.85], hemi: [0x6070c0, 0x201838, 0.4], interior: [0xffb860, 3.0],
-      rim: [0x7080ff, 0.5], exposure: 1.35, stars: 1, glow: 1,
+      rim: [0x7080ff, 0.5], exposure: 1.35, stars: 1, glow: 1, dir: [-0.35, 1, 0.55],
     },
   };
 
@@ -208,6 +218,8 @@
   let terrariumGroup, plantsGroup, fxGroup, critterGroup;
   const L = {};            // lights by name
   let starField;
+  const dayClouds = [];
+  const sunDirection = new THREE.Vector3();
   let moodName = 'day';
   const moodCur = { exposure: 1.18, stars: 0, glow: 0.2 };
   let home = null;         // the island's house: { g, cat, eave, light, smokeAt?, update? }
@@ -318,6 +330,7 @@
     critterGroup = new THREE.Group();
     terrariumGroup.add(plantsGroup, fxGroup, critterGroup);
 
+    buildDayClouds();
     buildRain();          // before the island: winter turns raindrops into snow
     setScene(sceneId);
     buildDust();
@@ -1241,6 +1254,35 @@
     scene.add(starField);
   }
 
+  // Small drifting voxel clouds cast moving shadows like Voxel Worlds.
+  // Keep these in world space so rotating the garden does not turn the weather.
+  function buildDayClouds() {
+    const rnd = mulberry32(31);
+    for (let i = 0; i < 3; i++) {
+      const g = new THREE.Group();
+      const material = new THREE.MeshLambertMaterial({ color: 0xffffff, transparent: true, opacity: 0.78, depthWrite: false });
+      for (let j = 0; j < 4; j++) {
+        const block = new THREE.Mesh(geo(1.3 + rnd(), 0.55 + rnd() * 0.5, 1 + rnd()), material);
+        block.position.set(j * 0.9 - 1.4, rnd() * 0.3, (rnd() - 0.5) * 0.7);
+        block.castShadow = true;
+        g.add(block);
+      }
+      g.position.set(-12 + i * 9, SKY + i * 0.5, -4 + i * 3);
+      g.userData = { material, speed: 0.3 + rnd() * 0.2 };
+      scene.add(g); dayClouds.push(g);
+    }
+  }
+  function stepDayClouds(dt) {
+    const night = moodCur.stars;
+    dayClouds.forEach(g => {
+      g.position.x += dt * g.userData.speed;
+      if (g.position.x > 18) g.position.x = -18;
+      g.userData.material.color.setHex(rain.on ? 0x9aa4b4 : moodName === 'golden' ? 0xffd0b0 : 0xffffff)
+        .lerp(_c.setHex(0x6a74a8), night * 0.7);
+      g.userData.material.opacity = (0.78 - night * 0.4) * (1 - rain.amt * 0.5);
+    });
+  }
+
   // --- Rain cloud (short breaks) ---
   const CLOUD_Y = SKY - 1.2;
   function buildRain() {
@@ -1900,7 +1942,7 @@
     p.state = 'alive';
     buildTo(p, p.h, true);
     burst(p, 26);
-    if (moodName === 'day') spawnButterfly(p);
+    if (moodName !== 'night') spawnButterfly(p);
     return serializeOne(p);
   }
 
@@ -2745,7 +2787,9 @@
       L[k].color.setHex(m[k][0]); L[k].intensity = m[k][1];
     });
     L.hemi.color.setHex(m.hemi[0]); L.hemi.groundColor.setHex(m.hemi[1]); L.hemi.intensity = m.hemi[2];
-    moodCur.exposure = m.exposure; moodCur.stars = m.stars;
+    moodCur.exposure = m.exposure; moodCur.stars = m.stars; moodCur.glow = m.glow;
+    sunDirection.fromArray(m.dir).normalize().multiplyScalar(24);
+    L.key.position.copy(sunDirection);
   }
   function setMood(name) { if (MOODS[name]) moodName = name; }
   function setRain(on) { rain.on = !!on; }
@@ -2755,8 +2799,12 @@
     const m = MOODS[moodName], k = 1 - Math.exp(-dt * 1.2);
     ['key', 'front', 'fill', 'amb', 'interior', 'rim'].forEach(n => {
       L[n].color.lerp(_c.setHex(m[n][0]), k);
-      L[n].intensity += (m[n][1] - L[n].intensity) * k;
+      const overcast = n === 'key' ? 1 - rain.amt * 0.55 : 1;
+      L[n].intensity += (m[n][1] * overcast - L[n].intensity) * k;
     });
+    sunDirection.fromArray(m.dir).normalize().multiplyScalar(24);
+    L.key.position.lerp(sunDirection, k);
+    L.key.color.lerp(_c.setHex(0xb8c4d8), rain.amt * k * 0.5);
     L.hemi.color.lerp(_c.setHex(m.hemi[0]), k);
     L.hemi.groundColor.lerp(_c.setHex(m.hemi[1]), k);
     L.hemi.intensity += (m.hemi[2] - L.hemi.intensity) * k;
@@ -3010,6 +3058,7 @@
     starField.material.opacity = moodCur.stars * (0.75 + Math.sin(t * 0.8) * 0.15);
     starField.visible = moodCur.stars > 0.01;
 
+    stepDayClouds(dt);
     stepRain(dt, t);
     stepFireflies(dt, t);
     stepButterflies(dt, t);

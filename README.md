@@ -2,10 +2,11 @@
 
 # Pomodoro Terrarium
 
-A cozy pomodoro timer where an isometric voxel garden island grows while you work. The island has a dusky-mauve sky, indigo grass, a little cabin with chimney smoke and a lily pond. Each island starts fresh, with no trees until you grow them. Reimagined from
+A cozy pomodoro timer where an isometric voxel garden island grows while you work. The island has a sky that changes with the time of day, seasonal grass, a little cabin with chimney smoke and a lily pond. Each island starts fresh, with no trees until you grow them. Reimagined from
 [typing-speed-terrarium](https://github.com/dalecri/typing-speed-terrarium).
 
 - **Seven islands**: *Blossom Hollow* (wood cabin, olive pond), *Amber Mill* (stone windmill with turning sails, ducklings), *Moonlit Greenhouse* (glass greenhouse, koi), *Corner Café* (pink café with a striped awning, spinning rooftop fan, fountain), *Lavender Flats* (three-storey flats, laundry on the roof, windows that switch on at night, goldfish), *Glass Florist* (flower shop with spinning vents, buckets of blooms, koi) and *Lighthouse Point* (striped lighthouse with a sweeping beam, sailboat). New users pick one in the intro, and each new garden in the album starts on a different island.
+- **Time of day**: morning, afternoon, golden hour and night follow your local clock, with changing skies, moving sunlight and shadows, drifting voxel clouds, stars and nighttime glow. In Settings → Time of day, pick a time or choose **Focus & breaks** for timer-driven lighting. Short breaks still water the garden with rain.
 - **Quebec seasons**: the island follows the calendar in Quebec's time zone. Winter (Dec–Mar) brings snow on the roofs and ground, frosted trees, a frozen pond and snowfall. Fall (Sep–Nov) turns the trees maple red and scatters leaves. Preview any season from settings.
 - **More land**: buy the Meadow expansion (13×13) and the Grand estate (15×15) in the shop's Land tab. Everything already planted stays put.
 - **The family cats**: Diego (rosetted Bengal), Ramses (spotted Savannah), Cali (calico) and Neo (white with grey tabby patches) roam the island, groom, and nap at night. Adopt them free from the Critters tab.
@@ -13,7 +14,7 @@ A cozy pomodoro timer where an isometric voxel garden island grows while you wor
 - **Focus**: a mystery seed sprouts and grows a block at a time as the timer runs, then blooms when it finishes.
 - **Stop early**: the sprout wilts. If you stop in the first minute, the seed just goes back in your pocket.
 - **Finish a task**: it revives a wilted sprout, or pops up something small like a mushroom, moss or a tulip.
-- **Short break**: dusk, with a rain cloud watering the island. **Long break**: night, with stars, fireflies and crickets.
+- **Short break**: a rain cloud waters the island. At **night**, stars, fireflies and crickets appear; **Focus & breaks** lighting keeps the original dusk/night break effects.
 - **Every 4th pomodoro** grows a cherry blossom tree.
 - **Critter journal**: butterflies, a snail, a ladybug, fireflies, a frog. Each has its own milestone.
 - **Hover any plant** to see which task it grew during. Drag to turn the island. Zoom in with the mouse wheel, a trackpad pinch or a two-finger pinch on touch screens, and drag to look around while zoomed. Double-click (or double-tap) to reset the view.

@@ -28,6 +28,7 @@
     --font: 'Nunito', system-ui, sans-serif;
     --display: 'Fredoka', 'Nunito', system-ui, sans-serif;
   }
+  body[data-mood="golden"],
   body[data-mood="dusk"] {
     --ink: #40283a;
     --ink-dim: rgba(64, 40, 58, 0.74);
@@ -64,11 +65,15 @@
   button { font-family: inherit; color: inherit; }
   #app { position: fixed; inset: 0; }
 
-  /* sky layers crossfade between moods */
+  /* Four times of day, with the original break sky available in timer mode. */
   .sky { position: absolute; inset: 0; opacity: 0; transition: opacity 2.4s ease; }
-  .sky.day   { background: linear-gradient(180deg, #6a4b6c 0%, #85627f 42%, #a07a94 72%, #b08aa0 100%); }
+  .sky.morning { background: linear-gradient(180deg, #fde4d2, #f0aaa6); }
+  .sky.day { background: linear-gradient(180deg, #9ae8d4, #3cb6a4); }
+  .sky.golden { background: linear-gradient(180deg, #ffc394, #e3809a); }
   .sky.dusk  { background: linear-gradient(180deg, #46507c 0%, #66709e 45%, #8d88b4 80%, #a398bf 100%); }
   .sky.night { background: linear-gradient(180deg, #0d1030 0%, #191c46 50%, #2e2858 85%, #3a2f62 100%); }
+  body[data-mood="morning"] .sky.morning,
+  body[data-mood="golden"] .sky.golden,
   body[data-mood="day"] .sky.day,
   body[data-mood="dusk"] .sky.dusk,
   body[data-mood="night"] .sky.night { opacity: 1; }
@@ -505,6 +510,8 @@
 </head>
 <body data-mood="day">
 <div id="app">
+  <div class="sky morning"></div>
+  <div class="sky golden"></div>
   <div class="sky day"></div>
   <div class="sky dusk"></div>
   <div class="sky night"></div>
@@ -561,6 +568,7 @@
         <span class="g-ctl"><button class="link-btn" id="gOff" type="button" hidden>Disconnect</button><button class="btn g-btn" id="gBtn" type="button">Connect</button></span>
       </div>
       <div class="set-row">Island <button class="link-btn" id="sceneBtn" type="button"></button></div>
+      <div class="set-row g-row"><span>Time of day<small class="g-status">Auto follows your clock; tap to pick a time</small></span><button class="link-btn" id="dayBtn" type="button"></button></div>
       <div class="set-row">Season <button class="link-btn" id="seasonBtn" type="button"></button></div>
       <div class="set-row">New here? <button class="link-btn" id="replayTour" type="button">Show the intro again</button></div>
     </div>

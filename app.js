@@ -9,7 +9,7 @@ Store.ready.then(function () {
   const KEY = 'pomodoro_terrarium_island_v1', JAR_KEY = 'pomodoro_terrarium_v1';
 
   const DEFAULTS = {
-    settings: { focus: 25, short: 5, long: 15, longEvery: 4, fx: true, amb: true, autoBreak: false, season: 'auto', awake: true, haptics: true, testSeconds: false },
+    settings: { focus: 25, short: 5, long: 15, longEvery: 4, fx: true, amb: true, autoBreak: false, season: 'auto', timeOfDay: 'auto', awake: true, haptics: true, testSeconds: false },
     timer: { mode: 'focus', status: 'idle', endAt: 0, remaining: 0, total: 0, growingId: null },
     cycle: 0,
     tasks: [],
@@ -305,17 +305,39 @@ Store.ready.then(function () {
   // =====================================================
   // Rendering
   // =====================================================
-  let lastMood = null;
+  const DAY_ORDER = ['auto', 'morning', 'day', 'golden', 'night', 'timer'];
+  const DAY_LABEL = { morning: 'Morning', day: 'Afternoon', golden: 'Golden hour', night: 'Night', timer: 'Focus & breaks' };
+  function clockMood(date = new Date()) {
+    const h = date.getHours();
+    return h >= 5 && h < 10 ? 'morning' : h >= 10 && h < 17 ? 'day' : h >= 17 && h < 20 ? 'golden' : 'night';
+  }
+  function currentMood() {
+    const choice = S.settings.timeOfDay;
+    if (choice === 'timer') return T.mode === 'focus' ? 'day' : T.mode === 'short' ? 'dusk' : 'night';
+    return DAY_LABEL[choice] ? choice : clockMood();
+  }
+  function renderDayBtn() {
+    const choice = S.settings.timeOfDay;
+    $('dayBtn').textContent = choice === 'timer' ? DAY_LABEL.timer :
+      (choice === 'auto' || !DAY_ORDER.includes(choice) ? 'Auto · ' : '') + DAY_LABEL[currentMood()];
+  }
   function applyMood() {
-    const mood = T.mode === 'focus' ? 'day' : T.mode === 'short' ? 'dusk' : 'night';
+    const mood = currentMood();
     document.body.dataset.mood = mood;
     Terrarium.setMood(mood);
-    const resting = T.status === 'running';
-    Terrarium.setRain(T.mode === 'short' && resting);
-    Terrarium.setFireflies(T.mode === 'long' ? 3 + Math.min(11, today().pomos) : 0);
-    Sound.setAmbience(T.mode === 'short' && resting ? 'rain' : T.mode === 'long' ? 'night' : 'none');
-    lastMood = mood;
+    const raining = T.mode === 'short' && T.status === 'running';
+    Terrarium.setRain(raining);
+    Terrarium.setFireflies(mood === 'night' ? 3 + Math.min(11, today().pomos) : 0);
+    Sound.setAmbience(raining ? 'rain' : mood === 'night' ? 'night' : 'none');
+    renderDayBtn();
   }
+  $('dayBtn').addEventListener('click', () => {
+    S.settings.timeOfDay = DAY_ORDER[(DAY_ORDER.indexOf(S.settings.timeOfDay) + 1) % DAY_ORDER.length];
+    applyMood(); renderTimer(); save();
+  });
+  // Recheck on resume as well as while open; background timers can be suspended.
+  setInterval(() => { if (S.settings.timeOfDay === 'auto') { applyMood(); renderTimer(); } }, 20000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { applyMood(); renderTimer(); } });
 
   function fmt(ms) {
     const s = Math.ceil(ms / 1000 * SPEED);
@@ -355,7 +377,7 @@ Store.ready.then(function () {
     } else if (T.mode === 'short') {
       c = T.status === 'running' ? 'Rain is watering your garden. Stretch, sip some water.' : 'You earned a rest. Let it rain for a bit.';
     } else {
-      c = T.status === 'running' ? 'Fireflies are out. Rest well.' : 'A long break under the stars.';
+      c = currentMood() === 'night' ? (T.status === 'running' ? 'Fireflies are out. Rest well.' : 'A long break under the stars.') : 'Take a longer rest. Your garden will be here.';
     }
     if (c !== lastCaption) { $('caption').innerHTML = c; lastCaption = c; }
   }
@@ -607,7 +629,7 @@ Store.ready.then(function () {
     }
     shelveArmed = 0;
     $('newJar').innerHTML = 'Save to album &amp; start fresh';
-    const bg = { day: '#8a6688', dusk: '#6e78a6', night: '#1d1f48' }[document.body.dataset.mood];
+    const bg = { morning: '#f0aaa6', day: '#3cb6a4', golden: '#e3809a', dusk: '#6e78a6', night: '#1d1f48' }[document.body.dataset.mood];
     S.shelf.unshift({ img: Terrarium.capture(bg), date: Date.now(), plants: S.garden.length });
     S.shelf = S.shelf.slice(0, 12);
     Terrarium.clearPlants();
@@ -916,7 +938,7 @@ Store.ready.then(function () {
     },
     {
       art: { extra: 'cat' }, title: 'Rest, collect, decorate',
-      text: 'Breaks bring rain and starry nights. Critters move in as you go, and coins buy flowers, critters and cozy accents in the shop. Here are 5 to start.',
+      text: 'Short breaks bring rain. The sky follows your clock, from morning to starry night. Critters move in as you go, and coins buy flowers, critters and cozy accents in the shop. Here are 5 to start.',
       target: () => [...document.querySelectorAll('.coin-pill[data-shop]')].find(visible),
     },
     {
