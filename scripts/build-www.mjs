@@ -10,16 +10,16 @@ const nm = p => join(root, 'node_modules', p);
 
 rmSync(out, { recursive: true, force: true });
 mkdirSync(join(out, 'vendor', 'fonts'), { recursive: true });
-mkdirSync(join(out, 'assets'), { recursive: true });
+mkdirSync(join(out, 'assets', 'fonts'), { recursive: true });
 
 for (const f of ['app.js', 'terrarium.js', 'sound.js', 'storage.js', 'device.js', 'gtasks.js']) copyFileSync(join(root, f), join(out, f));
-for (const f of ['logo-mark.png', 'favicon.png', 'apple-touch-icon.png']) copyFileSync(join(root, 'assets', f), join(out, 'assets', f));
+for (const f of ['logo-mark.png', 'favicon.png', 'apple-touch-icon.png', 'fonts/AlphaLyrae-Medium.woff2', 'fonts/AlphaLyrae-Medium.woff']) copyFileSync(join(root, 'assets', f), join(out, 'assets', f));
 copyFileSync(nm('three/build/three.min.js'), join(out, 'vendor', 'three.min.js'));
 copyFileSync(nm('@capacitor/core/dist/capacitor.js'), join(out, 'vendor', 'capacitor.js'));
 
 // fonts: latin subsets of the weights the app uses
 let css = '';
-const fonts = { fredoka: [400, 500, 600], nunito: [400, 600, 700, 800] };
+const fonts = { 'space-mono': [400, 700], 'press-start-2p': [400] };
 for (const [family, weights] of Object.entries(fonts)) {
   for (const w of weights) {
     const src = readFileSync(nm(`@fontsource/${family}/latin-${w}.css`), 'utf8');

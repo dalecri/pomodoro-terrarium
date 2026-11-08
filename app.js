@@ -9,7 +9,7 @@ Store.ready.then(function () {
   const KEY = 'pomodoro_terrarium_island_v1', JAR_KEY = 'pomodoro_terrarium_v1';
 
   const DEFAULTS = {
-    settings: { focus: 25, short: 5, long: 15, longEvery: 4, fx: true, amb: true, autoBreak: false, season: 'auto', timeOfDay: 'auto', awake: true, haptics: true, testSeconds: false },
+    settings: { focus: 25, short: 5, long: 15, longEvery: 4, fx: true, amb: true, autoBreak: false, season: 'auto', timeOfDay: 'auto', awake: true, haptics: true, testSeconds: false, deep: true },
     timer: { mode: 'focus', status: 'idle', endAt: 0, remaining: 0, total: 0, growingId: null },
     cycle: 0,
     tasks: [],
@@ -345,10 +345,14 @@ Store.ready.then(function () {
     return [String(m).padStart(2, '0'), String(r).padStart(2, '0')];
   }
 
+  let lastMin = null;
+  function pulse(el, cls) { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
   function renderTimer() {
     const rem = remaining();
     const [m, s] = fmt(rem);
     $('time').innerHTML = `${m}<span class="colon">:</span>${s}`;
+    if (T.status === 'running' && m !== lastMin && lastMin !== null) pulse($('time'), 'tick');
+    lastMin = T.status === 'running' ? m : null;
     const total = T.status === 'idle' ? durMs(T.mode) : T.total;
     const prog = T.status === 'idle' ? 0 : 1 - rem / total;
     $('progress').style.width = (prog * 100).toFixed(2) + '%';
@@ -382,7 +386,38 @@ Store.ready.then(function () {
     if (c !== lastCaption) { $('caption').innerHTML = c; lastCaption = c; }
   }
 
+  // Deep focus: while a focus session runs the panels step aside, the island
+  // takes the stage and slowly drifts, and the task floats above the clock.
+  let deepOn = false, peekTimer = null;
+  function renderDeep() {
+    const on = !!S.settings.deep && T.mode === 'focus' && T.status === 'running';
+    if (on === deepOn) return;
+    deepOn = on;
+    document.body.classList.toggle('deep', on);
+    document.body.classList.remove('peek');
+    if (on) { openSheet(null); $('settings').classList.remove('open'); }
+    Terrarium.setDrift(on);
+    Terrarium.refit(true);
+    if (on) playFocusWord();
+  }
+  function playFocusWord() {
+    const task = activeTask();
+    const words = (task ? task.text : 'Focus').split(/\s+/).filter(Boolean);
+    const el = $('focusWord');
+    el.innerHTML = words.map(w => `<span>${esc(w)}</span>`).join(' ');
+    const spans = [...el.children];
+    spans.forEach((sp, i) => setTimeout(() => { sp.classList.add('lit'); pulse(sp, 'focus'); }, 700 + i * 240));
+  }
+  function peek() {
+    if (!deepOn) return;
+    document.body.classList.add('peek');
+    clearTimeout(peekTimer);
+    peekTimer = setTimeout(() => document.body.classList.remove('peek'), 2600);
+  }
+  ['pointermove', 'pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, peek, { passive: true }));
+
   function render() {
+    renderDeep();
     $('timer').classList.toggle('running', T.status === 'running');
     $('timer').classList.toggle('test', !!S.settings.testSeconds);
     Device.setAwake(S.settings.awake && T.mode === 'focus' && T.status === 'running');
@@ -412,7 +447,7 @@ Store.ready.then(function () {
     const open = S.tasks.filter(t => !t.done).length;
     $('taskCount').textContent = S.tasks.length ? `${S.tasks.length - open}/${S.tasks.length} done` : '';
     if (!S.tasks.length) {
-      list.innerHTML = '<li class="empty-tasks">Nothing planted yet.<br>Add what you\'re working on, then tend it with a pomodoro.<br>Each finished task grows something small.</li>';
+      list.innerHTML = '<li class="empty-tasks">Nothing planted yet.</li>';
       return;
     }
     list.innerHTML = S.tasks.map(t => `
@@ -590,7 +625,7 @@ Store.ready.then(function () {
     const c = CRITTERS.find(x => x.k === el.dataset.k);
     $('journalNote').innerHTML = S.unlocked[c.k] ? `<b>${c.name}</b> live on your island.` : `<b>???</b> ${c.hint}`;
   });
-  $('journal').addEventListener('mouseleave', () => { $('journalNote').textContent = 'Hover a critter to see how to meet it.'; });
+  $('journal').addEventListener('mouseleave', () => { $('journalNote').textContent = ''; });
 
   function unlock(k) {
     if (S.unlocked[k]) return;
@@ -614,7 +649,7 @@ Store.ready.then(function () {
   function renderShelf() {
     $('shelf').innerHTML = S.shelf.length
       ? S.shelf.map(j => `<div class="jar-thumb" title="${j.plants} plants · ${fmtDate(j.date)}"><img src="${j.img}" alt="Saved garden"><span>${fmtDate(j.date)}</span></div>`).join('')
-      : '<div class="shelf-empty">When your island fills up, save a snapshot here and start fresh. Your old gardens live here.</div>';
+      : '<div class="shelf-empty">Full islands land here.</div>';
   }
 
   let shelveArmed = 0;
@@ -692,7 +727,7 @@ Store.ready.then(function () {
     S.settings[k] = !S.settings[k];
     if (k === 'fx') Sound.setFx(S.settings.fx);
     if (k === 'amb') { Sound.unlock(); Sound.setAmb(S.settings.amb); }
-    if (k === 'awake') render();
+    if (k === 'awake' || k === 'deep') render();
     if (k === 'testSeconds') {
       if (T.status === 'idle') T.remaining = T.total = durMs(T.mode);   // a running timer keeps its length
       renderSettings(); render();
@@ -1090,7 +1125,7 @@ Store.ready.then(function () {
       : g.last ? `Synced ${ago(g.last)}` : 'Connected';
     $('gBtn').textContent = !on ? 'Connect' : g.needsAuth ? 'Reconnect' : 'Sync now';
     $('gOff').hidden = !on;
-    $('gFoot').textContent = on ? (g.needsAuth ? '⚠ Google Tasks: sign in again' : `☁ Synced with Google Tasks · ${g.last ? ago(g.last) : '…'}`) : 'Tap a task to tend it';
+    $('gFoot').textContent = on ? (g.needsAuth ? '⚠ Google Tasks: sign in again' : `☁ Synced with Google Tasks · ${g.last ? ago(g.last) : '…'}`) : '';
   }
   GTasks.setup({
     state: () => S,

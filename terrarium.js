@@ -351,12 +351,15 @@
     }));
     return pts;
   }
-  function positionCamera() {
+  // The free space around the UI comes from CSS (--fit-top/bottom/side on body),
+  // so a layout change like deep focus can hand the island more room.
+  function positionCamera(animated) {
     const W = container.clientWidth, H = container.clientHeight;
     const wide = W > 980;
-    const css = getComputedStyle(document.documentElement);
-    const sat = parseFloat(css.getPropertyValue('--sat')) || 0, sab = parseFloat(css.getPropertyValue('--sab')) || 0;
-    const top = (wide ? 50 : 60) + sat, bottom = (wide ? 290 : 280) + sab, side = wide ? 330 : 10;
+    const css = getComputedStyle(document.body);
+    const px = (k, d) => { const v = parseFloat(css.getPropertyValue(k)); return isNaN(v) ? d : v; };
+    const sat = px('--sat', 0), sab = px('--sab', 0);
+    const top = px('--fit-top', wide ? 50 : 60) + sat, bottom = px('--fit-bottom', wide ? 290 : 280) + sab, side = px('--fit-side', wide ? 330 : 10);
     const aw = Math.max(W * 0.36, W - 2 * side), ah = Math.max(H * 0.3, H - top - bottom);
     camera.updateMatrixWorld();
     let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
@@ -367,13 +370,28 @@
     const s = Math.max((x1 - x0) / aw, (y1 - y0) / ah);     // world units per pixel
     const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
     const l = cx - (W / 2) * s, tp = cy + (top + ah / 2) * s;
-    fit = { l, r: l + W * s, t: tp, b: tp - H * s };
+    const next = { l, r: l + W * s, t: tp, b: tp - H * s };
+    if (animated && fit) { fitAnim = { from: Object.assign({}, fit), to: next, t: 0 }; return; }
+    fitAnim = null; fit = next;
     applyView();
   }
+  function refit(animated) { positionCamera(animated); }
+  function stepFit(dt) {
+    if (!fitAnim) return;
+    fitAnim.t = Math.min(1, fitAnim.t + dt / 1.1);
+    const k = fitAnim.t < .5 ? 4 * fitAnim.t ** 3 : 1 - (-2 * fitAnim.t + 2) ** 3 / 2;
+    const { from, to } = fitAnim;
+    fit = { l: from.l + (to.l - from.l) * k, r: from.r + (to.r - from.r) * k, t: from.t + (to.t - from.t) * k, b: from.b + (to.b - from.b) * k };
+    applyView();
+    if (fitAnim.t >= 1) fitAnim = null;
+  }
+  // a slow sway while focusing, layered on top of whatever the user dragged to
+  let driftOn = false, driftAmt = 0;
+  function setDrift(on) { driftOn = !!on; }
 
   // ---- zoom + pan on top of the fitted view (wheel, pinch, drag while zoomed) ----
   const view = { zoom: 1, panX: 0, panY: 0 };
-  let fit = null, viewCb = null;
+  let fit = null, fitAnim = null, viewCb = null;
   const MAX_ZOOM = 4;
   function applyView() {
     if (!fit) return;
@@ -2956,7 +2974,9 @@
 
     stepMood(dt);
     rotY += (rotTarget - rotY) * (1 - Math.exp(-dt * 6));
-    terrariumGroup.rotation.y = rotY;
+    driftAmt += ((driftOn ? 0.38 : 0) - driftAmt) * (1 - Math.exp(-dt * 0.8));
+    terrariumGroup.rotation.y = rotY + Math.sin(t * 0.11) * driftAmt;
+    stepFit(dt);
 
     // plants: pop-in, sway, droop, petals
     plants.forEach(p => {
@@ -3200,7 +3220,7 @@
     serialize, speciesLabel, setMarker, setMood, setRain, setFireflies, setCritters, setExtras, preview,
     spawnButterfly, onHover, capture, screenRect, freeCount: () => freeCells().length,
     get CAPACITY() { return GRID * GRID - RESERVED.size; },
-    setLand, land: () => RING, setSeason, season: () => season, resetView, onView,
+    setLand, land: () => RING, setSeason, season: () => season, resetView, onView, refit, setDrift,
     setScene, scene: () => sceneId,
     SCENES: Object.keys(SCENES).map(id => ({ id, name: SCENES[id].name, tag: SCENES[id].tag,
       swatch: [SCENES[id].grass[1], SCENES[id].blossom[0], SCENES[id].pond.water] })),
